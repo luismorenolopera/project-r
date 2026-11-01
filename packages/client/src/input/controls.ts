@@ -6,7 +6,11 @@ import { Btn } from '@mazmorra/shared';
 export class Controls {
   camYaw = 0;
   camPitch = 0.35;
+  /** Puntero bloqueado o, si el navegador lo rechaza, modo alternativo con el cursor libre. */
   locked = false;
+  private pointerLocked = false;
+  private fallback = false;
+  onActiveChange: (active: boolean) => void = () => {};
   private readonly keys = new Set<string>();
   private mouseButtons = 0;
   private readonly pressedOnce = new Set<string>();
@@ -28,23 +32,52 @@ export class Controls {
       if (!this.locked) return;
       this.mouseButtons |= 1 << e.button;
     });
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Escape' && this.fallback) this.setFallback(false);
+    });
+    document.addEventListener('pointerlockerror', () => this.setFallback(true));
     window.addEventListener('mouseup', (e) => {
       this.mouseButtons &= ~(1 << e.button);
     });
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
     document.addEventListener('pointerlockchange', () => {
-      this.locked = document.pointerLockElement === canvas;
-      if (!this.locked) this.mouseButtons = 0;
+      this.pointerLocked = document.pointerLockElement === canvas;
+      if (this.pointerLocked) this.fallback = false;
+      this.refresh();
     });
     document.addEventListener('mousemove', (e) => {
       if (!this.locked) return;
+      // Sin bloqueo de puntero, la cámara gira manteniendo el clic derecho.
+      if (this.fallback && !(this.mouseButtons & 4)) return;
       this.camYaw -= e.movementX * this.sensitivity;
       this.camPitch = Math.max(-0.25, Math.min(1.2, this.camPitch + e.movementY * this.sensitivity));
     });
   }
 
+  private refresh() {
+    const was = this.locked;
+    this.locked = this.pointerLocked || this.fallback;
+    if (!this.locked) this.mouseButtons = 0;
+    if (was !== this.locked) this.onActiveChange(this.locked);
+  }
+
+  private setFallback(on: boolean) {
+    this.fallback = on;
+    this.refresh();
+  }
+
+  get usingFallback() {
+    return this.fallback;
+  }
+
+  /** Llamar desde un clic. Si el bloqueo de puntero no está permitido, pasa al modo alternativo. */
   lock() {
-    void this.canvas.requestPointerLock();
+    try {
+      const r = this.canvas.requestPointerLock() as unknown as Promise<void> | undefined;
+      if (r && typeof r.catch === 'function') r.catch(() => this.setFallback(true));
+    } catch {
+      this.setFallback(true);
+    }
   }
 
   down(code: string) {
@@ -90,7 +123,7 @@ export class Controls {
     if (this.mouseButtons & 1) b |= Btn.Ataque;
     if (this.down('Space')) b |= Btn.Salto;
     if (this.down('ShiftLeft') || this.down('ShiftRight')) b |= Btn.Movilidad;
-    if (this.down('KeyQ') || this.mouseButtons & 4) b |= Btn.Mitigacion;
+    if (this.down('KeyQ') || (!this.fallback && this.mouseButtons & 4)) b |= Btn.Mitigacion;
     if (this.down('KeyE')) b |= Btn.Principal;
     if (this.down('KeyR')) b |= Btn.Definitiva;
     return b;

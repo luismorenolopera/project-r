@@ -318,7 +318,10 @@ playBtn.onclick = () => {
   playBtn.textContent = 'Clic para volver al juego';
   controls.lock();
 };
-document.addEventListener('pointerlockchange', () => hud.setLocked(document.pointerLockElement === canvas));
+controls.onActiveChange = (active) => {
+  hud.setLocked(active);
+  if (active && controls.usingFallback) hud.feed('Ratón libre: mantén el clic derecho para girar la cámara. Esc para salir.');
+};
 canvas.addEventListener('click', () => {
   if (!controls.locked && document.body.classList.contains('started')) controls.lock();
 });

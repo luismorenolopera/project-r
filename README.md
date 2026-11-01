@@ -31,7 +31,7 @@ Haz clic en «Haz clic para jugar». Controles:
 | --- | --- |
 | WASD / ratón | Moverse / cámara y apuntar |
 | Clic izquierdo (mantener) | Ataque básico |
-| Shift · Q (o clic central) · E · R | Movilidad · Mitigación · Principal · Definitiva |
+| Shift · Q (o clic derecho) · E · R | Movilidad · Mitigación · Principal · Definitiva |
 | Espacio | Saltar |
 | 1 a 5 | Guerrero, Mago, Arquero, Curador, Alquimista |
 | Z X C V B G | Esqueleto, Cultista, Bruto, Espectro, Muñeco, Compañero (en el punto apuntado) |
