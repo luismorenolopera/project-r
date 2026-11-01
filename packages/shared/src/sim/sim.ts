@@ -76,6 +76,12 @@ export class Sim {
   kind(eid: number): Kind { return this.c.KindC.k[eid] as Kind; }
   team(eid: number): TeamId { return this.c.Team.id[eid] as TeamId; }
   emit(e: SimEvent) { this.events.push(e); }
+  /** Devuelve y vacía los eventos pendientes (incluidos los emitidos fuera de step()). */
+  drainEvents(): SimEvent[] {
+    const out = this.events;
+    this.events = [];
+    return out;
+  }
 
   // ---------- creación ----------
   private reset(eid: number) {
@@ -463,7 +469,6 @@ export class Sim {
   // ---------- bucle ----------
   step() {
     const c = this.c;
-    this.events.length = 0;
 
     for (const e of this.actors()) {
       c.Pos.px[e] = c.Pos.x[e]!;

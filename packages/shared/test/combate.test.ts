@@ -14,7 +14,8 @@ function aimAt(sim: Sim, hero: number, tx: number, tz: number, buttons = 0, move
 function run(sim: Sim, ticks: number, onTick?: (events: SimEvent[]) => void) {
   for (let i = 0; i < ticks; i++) {
     sim.step();
-    onTick?.(sim.events);
+    const ev = sim.drainEvents();
+    onTick?.(ev);
   }
 }
 
@@ -28,7 +29,7 @@ function collect(sim: Sim, ticks: number): SimEvent[] {
 function press(sim: Sim, hero: number, btn: number, tx: number, tz: number) {
   sim.setInput(hero, aimAt(sim, hero, tx, tz, btn));
   sim.step();
-  const ev = [...sim.events];
+  const ev = sim.drainEvents();
   sim.setInput(hero, aimAt(sim, hero, tx, tz, 0));
   return ev;
 }
@@ -158,6 +159,7 @@ describe('interacción física y cobertura (2.4)', () => {
     const cult = sim.spawnMonster(Kind.Cultista, 8, -5.5);
     sim.c.AI.cd[cult] = 0;
     sim.step();
+    sim.drainEvents();
     expect(sim.c.Telegraph.active[cult]).toBe(0);
   });
 });
