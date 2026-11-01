@@ -56,3 +56,13 @@ físico que cruza un Santuario pasa a sagrado (+30%); cualquier fuego (también 
 **Decisión:** en el sandbox se cambia de clase con 1-5, conservando la vida proporcional y los tiempos de reutilización de cada clase.
 Las zonas creadas siguen activas.
 **Motivo:** permite probar sinergias entre clases con un solo jugador. En partida real la clase se elige antes de entrar.
+
+## D-12 · Objetos rompibles: fractura convexa precalculada en el momento del golpe
+**Decisión:** los rompibles son poliedros convexos. Al romperse se cortan con 10-16 planos aleatorios sesgados hacia el
+punto de impacto; cada trozo es convexo y entra tal cual en cannon-es como `ConvexPolyhedron`. Las caras nuevas del corte
+se tiñen con el color del interior (madera clara, barro). Los trozos duermen al parar y desaparecen a los 12 s (tope de 450).
+**Motivo:** cannon-es solo colisiona bien con convexos; cortar con planos garantiza convexidad sin Voronoi ni
+descomposición convexa, y basta para el estilo PS1. En el juego real la rotura será un evento del servidor con semilla
+(mismo troceado en todos los clientes) y los trozos serán cosméticos, como los ragdolls (D-03).
+**Estado:** prototipo aislado (`prototipo-embestida.html`); en él las físicas sí mueven a guerrero y enemigos para probar
+la sensación. Pendiente de confirmar antes de llevarlo a la simulación compartida.

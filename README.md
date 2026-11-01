@@ -38,6 +38,25 @@ Haz clic en «Haz clic para jugar». Controles:
 | O · K · I | Oleada · Limpiar · Inmortal |
 | Esc | Soltar el ratón y usar el panel lateral |
 
+## Prototipo: embestida con físicas
+
+```bash
+pnpm dev          # http://localhost:5173/prototipo-embestida.html
+```
+
+Prueba aislada del guerrero: la embestida (7 m en 0,3 s hacia el cursor) empuja a los enemigos según su masa y rompe
+cajas, barriles, urnas y lápidas. Cada objeto es un poliedro convexo que, al romperse, se corta con planos aleatorios
+cerca del impacto (`packages/client/src/prototipos/embestida/fractura.ts`); cada trozo es un `ConvexPolyhedron`
+de cannon-es. Un enemigo despedido contra un muro, pilar o sarcófago queda aturdido, y si choca con un objeto lo rompe.
+
+| Tecla | Acción |
+| --- | --- |
+| WASD | Moverse |
+| Clic / Espacio / Shift | Embestida hacia el cursor |
+| 1 2 3 4 | Caja, barril, urna, lápida en el cursor |
+| 5 6 | Esqueleto, bruto en el cursor |
+| T · P · R | Cámara lenta · los enemigos persiguen · reiniciar |
+
 ## Probar
 
 ```bash

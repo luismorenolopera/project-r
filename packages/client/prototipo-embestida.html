@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mazmorra Co-op · Prototipo de embestida con físicas</title>
+  </head>
+  <body>
+    <canvas id="game"></canvas>
+
+    <aside id="panel">
+      <h1>Embestida con físicas</h1>
+      <p>El guerrero carga 7 m hacia el cursor. Empuja a los enemigos y hace añicos los objetos.</p>
+      <div class="teclas">
+        <b>WASD</b><span>moverse</span>
+        <b>Clic/Espacio</b><span>embestida al cursor</span>
+        <b>1 2 3 4</b><span>caja, barril, urna, lápida</span>
+        <b>5 6</b><span>esqueleto, bruto</span>
+        <b>T · P · R</b><span>lenta · persecución · reiniciar</span>
+      </div>
+      <div class="botones">
+        <button data-gen="Digit1">+ Caja</button>
+        <button data-gen="Digit2">+ Barril</button>
+        <button data-gen="Digit3">+ Urna</button>
+        <button data-gen="Digit4">+ Lápida</button>
+        <button data-gen="Digit5">+ Esqueleto</button>
+        <button data-gen="Digit6">+ Bruto</button>
+        <button id="btn-lento" class="ancho">Cámara lenta (T): no</button>
+        <button id="btn-persiguen" class="ancho">Enemigos persiguen (P): no</button>
+        <button id="btn-reiniciar" class="ancho">Reiniciar escena (R)</button>
+      </div>
+    </aside>
+
+    <div id="stats"></div>
+    <div id="cd"><div id="cd-fill"></div><span>EMBESTIDA</span></div>
+
+    <div id="inicio">
+      <div class="card">
+        <h1>Prototipo · Embestida</h1>
+        <p>Prueba rápida de físicas para Mazmorra Co-op.</p>
+        <p>· Embiste a un <b>esqueleto</b> contra un muro, pilar o sarcófago: queda aturdido.<br />
+           · Empújalo contra cajas o barriles: los rompe al chocar.<br />
+           · El <b>bruto</b> pesa cuatro veces más: frena tu carga en seco.<br />
+           · Los objetos se fracturan en trozos convexos simulados con cannon-es.</p>
+        <button id="btn-jugar">Empezar</button>
+      </div>
+    </div>
+    <script type="module" src="/src/prototipos/embestida/main.ts"></script>
+  </body>
+</html>
