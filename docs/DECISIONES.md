@@ -116,3 +116,27 @@ estética PS1 y la música puede reaccionar al combate capa a capa, cosa difíci
 **Estado:** primera versión. La mezcla se equilibró midiendo cada capa renderizada sin altavoces (picos entre -7 y -11 dBFS,
 sin recortes, con el volumen por defecto). Si más adelante se quieren pistas grabadas, el control y `Fragor` sirven igual.
 
+
+## D-18 · Rendimiento de la destrucción: se optimiza en el navegador, no se cambia de motor
+**Medición:** escena de prueba con 12 barriles de aceite, 18 cajas, un muro, 5 cristales, un obelisco y una columna; una
+Esfera ígnea dispara la cadena. Se simula con `__mago.avanzar(1/60)` y se perfila con el perfilador de Chrome.
+Antes: unos 20 ms de media por fotograma solo de simulación y un pico de 350 a 400 ms en el fotograma de la cadena.
+El 90 % era cannon-es (`ConvexPolyhedron.project` y `findSeparatingAxis`: choques convexo contra convexo entre trozos) y en
+el pico se sumaban unos 90 ms de `fracturar` (un casco convexo por corte, decenas de objetos a la vez).
+**Decisión:**
+- Los trozos no chocan entre sí (grupo de colisión propio): siguen chocando con el suelo, muros, objetos intactos y personajes.
+  También en el prototipo de embestida.
+- Los objetos intactos usan patrones de rotura precalculados: 10 direcciones de impacto por tipo (y otras 10 congelado), con
+  semilla propia y en ratos libres del navegador. La geometría de cada trozo se comparte. Los objetos ya astillados se
+  fracturan en el momento, como antes.
+- Las partículas se dibujan con dos `InstancedMesh` (normal y aditiva) en vez de una malla por cubo: hasta 900 llamadas de
+  dibujo menos y sin crear objetos por partícula.
+- El destello de los combos del HUD ya no fuerza un reflujo del DOM por combo, sino uno por fotograma como mucho.
+- Tope de trozos de 380 a 300. El panel de estadísticas muestra las llamadas de dibujo.
+**Resultado:** simulación de 20 a 8 ms de media y pico de 400 a 25 ms con la caché caliente (unos 100 ms si la cadena estalla
+antes de que haya ratos libres para precalcular). En tiempo real con render por software, el p95 del fotograma bajó de
+600 a 150 ms.
+**Motivo:** el cuello de botella era de algoritmo (pares de colisión que crecen con el cuadrado de los trozos y trabajo
+repetido en el peor momento), no del navegador. Un motor de escritorio con el mismo diseño tendría el mismo problema.
+**Pendiente si hace falta más:** juntar la geometría estática de la arena (unas 220 llamadas de dibujo en reposo),
+`BatchedMesh` para los trozos y, si la física sigue pesando, pasarla a un Web Worker o a Rapier (WASM).

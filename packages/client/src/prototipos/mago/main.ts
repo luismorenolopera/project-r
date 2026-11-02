@@ -441,11 +441,16 @@ function frame() {
   camera.lookAt(camPos.x, 0.6, camPos.z - 10.5 * zoom);
 
   updateBraziers(vistaArena, estado.tiempo);
+  renderer.info.reset();
   post.render(renderer, scene, camera);
+  dibujos = renderer.info.render.calls;
   hud.actualizar();
   pintarStats();
 }
 
+// El post-proceso dibuja dos veces por fotograma: el contador se pone a cero a mano para sumar ambas.
+renderer.info.autoReset = false;
+let dibujos = 0;
 const elStats = document.getElementById('stats')!;
 let statsT = 0;
 function pintarStats() {
@@ -463,7 +468,7 @@ function pintarStats() {
     `enemigos ${enemigos.filter((e) => e.tipo !== 'muneco').length} · caídos ${estadisticasEnemigos.muertos} · combos ${combos}\n` +
     `objetos ${rompibles.length} · rotos ${estadisticasObjetos.rotos} · lascas ${estadisticasObjetos.lascas}\n` +
     `trozos ${trozos.length} · cuerpos ${world.bodies.length} (${despiertos} activos)\n` +
-    `proyectiles ${h.proyectiles} · partículas ${cuentaParticulas()}`;
+    `proyectiles ${h.proyectiles} · partículas ${cuentaParticulas()} · dibujos ${dibujos}`;
 }
 
 montarEscena();
@@ -478,6 +483,8 @@ frame();
   rompibles,
   trozos,
   contadorCombos,
+  /** Llamadas de dibujo del último fotograma (para medir rendimiento). */
+  dibujos: () => dibujos,
   estadisticasObjetos,
   hechizos: HECHIZOS.map((h) => ({ id: h.id, categoria: h.categoria, runas: h.runas.map((r) => r.id) })),
   apuntarA(x: number, z: number) {

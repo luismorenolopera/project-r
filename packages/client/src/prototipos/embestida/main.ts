@@ -373,7 +373,10 @@ function romper(r: Rompible, puntoMundo: THREE.Vector3, dir: THREE.Vector3, fuer
     const geo = geometriaDe(p, p.centro, r.planos, opciones);
     const mesh = new THREE.Mesh(geo, r.material);
     scene.add(mesh);
-    const body = new CANNON.Body({ mass: Math.max(0.2, p.volumen * r.tipo.densidad * 10), material: mObjeto });
+    // Grupo 2, máscara sin el 2: los trozos no chocan entre sí (pares convexo-convexo, el grueso del coste).
+    const body = new CANNON.Body({
+      mass: Math.max(0.2, p.volumen * r.tipo.densidad * 10), material: mObjeto, collisionFilterGroup: 2, collisionFilterMask: ~2,
+    });
     body.addShape(shapeDe(p, p.centro));
     const w = b.pointToWorldFrame(new CANNON.Vec3(p.centro.x, p.centro.y, p.centro.z));
     body.position.copy(w);

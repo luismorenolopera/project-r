@@ -8,6 +8,7 @@ import {
   formaTorno,
   fracturar,
   geometriaDe,
+  mulberry32,
   normalLibre,
   normalVeta,
   planosDe,
@@ -132,8 +133,14 @@ export const estadisticasFormas = { aproximadas: 0 };
  * Forma de colisión de un convexo, relativa a `centro`. Si el convexo no cumple lo que espera
  * cannon-es (caso raro tras muchos cortes), se aproxima por su caja para no romper el solver.
  */
+const validez = new WeakMap<Convexo, boolean>();
 function anadirForma(body: CANNON.Body, c: Convexo, centro: THREE.Vector3) {
-  if (validoParaCannon(c)) {
+  let ok = validez.get(c);
+  if (ok === undefined) {
+    ok = validoParaCannon(c);
+    validez.set(c, ok);
+  }
+  if (ok) {
     body.addShape(
       new CANNON.ConvexPolyhedron({
         vertices: c.verts.map((p) => new CANNON.Vec3(p.x - centro.x, p.y - centro.y, p.z - centro.z)),
@@ -220,6 +227,7 @@ export function crearRompible(id: string, x: number, y: number, z: number, rotY 
   rompibles.push(r);
   rompibleDe.set(body, r);
   sincronizar(r);
+  precalcularPatrones(tipo, local, planos);
   return r;
 }
 
@@ -299,18 +307,27 @@ function empujarCuerpo(b: CANNON.Body, dir: THREE.Vector3, v: number) {
 interface Trozo {
   body: CANNON.Body;
   mesh: THREE.Mesh;
+  /** La geometría viene de la caché de fracturas y la comparten varios trozos: no se libera. */
+  compartida: boolean;
   edad: number;
   arde: number;
 }
 export const trozos: Trozo[] = [];
-const MAX_TROZOS = 380;
+const MAX_TROZOS = 300;
+/**
+ * Grupos de colisión. Los trozos chocan con el suelo, los muros, los objetos intactos y los personajes,
+ * pero no entre sí: los pares trozo-trozo son convexo contra convexo (SAT + recorte), crecen con el
+ * cuadrado de los trozos y eran casi todo el coste de una explosión en cadena.
+ */
+export const GRUPO_ESCENA = 1;
+export const GRUPO_TROZO = 2;
 const VIDA_TROZOS = 11;
 
 function quitarTrozo(i: number) {
   const t = trozos[i]!;
   world.removeBody(t.body);
   t.mesh.removeFromParent();
-  t.mesh.geometry.dispose();
+  if (!t.compartida) t.mesh.geometry.dispose();
   trozos.splice(i, 1);
 }
 
@@ -328,14 +345,17 @@ interface Lanzamiento {
 }
 
 const _q = new CANNON.Quaternion();
-function lanzarPiezas(piezas: Convexo[], o: Lanzamiento) {
+function lanzarPiezas(piezas: Convexo[], o: Lanzamiento, geometrias?: THREE.BufferGeometry[]) {
   const mat = materialDe(o.tipo, o.variante);
   const opts = opcionesMalla(o.tipo);
-  for (const p of piezas) {
-    const geo = geometriaDe(p, p.centro, o.planos, opts);
+  for (let ip = 0; ip < piezas.length; ip++) {
+    const p = piezas[ip]!;
+    const geo = geometrias?.[ip] ?? geometriaDe(p, p.centro, o.planos, opts);
     const mesh = new THREE.Mesh(geo, mat);
     scene.add(mesh);
-    const body = new CANNON.Body({ mass: masaDe(p.volumen, o.tipo), material: mObjeto });
+    const body = new CANNON.Body({
+      mass: masaDe(p.volumen, o.tipo), material: mObjeto, collisionFilterGroup: GRUPO_TROZO, collisionFilterMask: ~GRUPO_TROZO,
+    });
     anadirForma(body, p, p.centro);
     const rel = new CANNON.Vec3(p.centro.x - o.centro.x, p.centro.y - o.centro.y, p.centro.z - o.centro.z);
     const w = o.ref.quaternion.vmult(rel).vadd(o.ref.position);
@@ -359,9 +379,100 @@ function lanzarPiezas(piezas: Convexo[], o: Lanzamiento) {
     world.addBody(body);
     mesh.position.set(w.x, w.y, w.z);
     mesh.quaternion.set(body.quaternion.x, body.quaternion.y, body.quaternion.z, body.quaternion.w);
-    trozos.push({ body, mesh, edad: 0, arde: o.arde && rnd() < 0.5 ? rand(1, 3) : 0 });
+    trozos.push({ body, mesh, compartida: !!geometrias, edad: 0, arde: o.arde && rnd() < 0.5 ? rand(1, 3) : 0 });
   }
   while (trozos.length > MAX_TROZOS) quitarTrozo(0);
+}
+
+// ---------------------------------------------------------------- caché de fracturas
+/**
+ * Fracturar un objeto cuesta varios milisegundos (un casco convexo por corte) y una explosión en
+ * cadena rompe decenas a la vez en el mismo paso. Los objetos intactos de un tipo tienen siempre la
+ * misma forma, así que su rotura se precalcula: unos cuantos patrones por tipo, cada uno con el
+ * impacto en una dirección distinta, y al romper se usa el patrón cuya dirección se parece más a la
+ * del golpe. La geometría de cada trozo también se comparte entre todos los usos del patrón.
+ * Se generan con su propia semilla (no consumen el azar de la partida) en ratos libres del
+ * navegador; si aún no está hecho cuando hace falta, se calcula en el momento y se guarda.
+ */
+interface Patron {
+  dir: THREE.Vector3;
+  piezas: Convexo[];
+  geometrias: THREE.BufferGeometry[];
+}
+const DIRECCIONES_PATRON: THREE.Vector3[] = [
+  ...Array.from({ length: 8 }, (_, i) => new THREE.Vector3(Math.cos((i / 8) * Math.PI * 2), 0.15, Math.sin((i / 8) * Math.PI * 2)).normalize()),
+  new THREE.Vector3(0.2, 1, 0).normalize(),
+  new THREE.Vector3(-0.2, -1, 0.1).normalize(),
+];
+const patrones = new Map<string, (Patron | undefined)[]>();
+export const estadisticasPatrones = { calculados: 0, usados: 0 };
+
+function patron(t: TipoObjeto, base: Convexo, planos: Plano[], helado: boolean, i: number): Patron {
+  const k = `${t.id}-${helado ? 'h' : 'n'}`;
+  let lista = patrones.get(k);
+  if (!lista) {
+    lista = new Array(DIRECCIONES_PATRON.length);
+    patrones.set(k, lista);
+  }
+  let p = lista[i];
+  if (p) return p;
+  const dir = DIRECCIONES_PATRON[i]!;
+  let soporte = 0;
+  for (const v of base.verts) soporte = Math.max(soporte, dir.dot(v.clone().sub(base.centro)));
+  const impacto = base.centro.clone().addScaledVector(dir, soporte * 0.7);
+  const n = Math.max(2, Math.round(t.piezas * (helado ? 1.4 : 1)));
+  let semilla = 0;
+  for (const ch of k) semilla = (semilla * 31 + ch.charCodeAt(0)) >>> 0;
+  const piezas = fracturar(base, impacto, n, mulberry32(semilla + i * 7919), t.material === 'madera' ? normalVeta : normalLibre);
+  const opts = opcionesMalla(t);
+  for (const pz of piezas) validez.set(pz, validoParaCannon(pz));
+  p = { dir, piezas, geometrias: piezas.map((pz) => geometriaDe(pz, pz.centro, planos, opts)) };
+  lista[i] = p;
+  estadisticasPatrones.calculados++;
+  return p;
+}
+
+function fracturaCacheada(t: TipoObjeto, base: Convexo, planos: Plano[], impacto: THREE.Vector3, helado: boolean): Patron {
+  const d = impacto.clone().sub(base.centro);
+  if (d.lengthSq() < 1e-8) d.set(0, 1, 0);
+  d.normalize();
+  let mejor = 0;
+  let mejorDot = -Infinity;
+  DIRECCIONES_PATRON.forEach((dp, i) => {
+    const x = dp.dot(d);
+    if (x > mejorDot) {
+      mejorDot = x;
+      mejor = i;
+    }
+  });
+  estadisticasPatrones.usados++;
+  return patron(t, base, planos, helado, mejor);
+}
+
+/** Cola de patrones por precalcular en ratos libres (uno por llamada para no dar tirones). */
+const colaPatrones: (() => void)[] = [];
+const tiposPrecalculados = new Set<string>();
+let precalculando = false;
+const enRatoLibre: (cb: () => void) => void =
+  typeof requestIdleCallback === 'function' ? (cb) => requestIdleCallback(cb, { timeout: 500 }) : (cb) => setTimeout(cb, 16);
+function precalcularPatrones(t: TipoObjeto, base: Convexo, planos: Plano[]) {
+  if (tiposPrecalculados.has(t.id)) return;
+  tiposPrecalculados.add(t.id);
+  for (const helado of [false, true]) {
+    for (let i = 0; i < DIRECCIONES_PATRON.length; i++) colaPatrones.push(() => patron(t, base, planos, helado, i));
+  }
+  if (precalculando) return;
+  precalculando = true;
+  const siguiente = () => {
+    const tarea = colaPatrones.shift();
+    if (!tarea) {
+      precalculando = false;
+      return;
+    }
+    tarea();
+    enRatoLibre(siguiente);
+  };
+  enRatoLibre(siguiente);
 }
 
 /** Rompe un objeto entero: lo fractura cerca del impacto y lanza los trozos. */
@@ -373,8 +484,17 @@ export function romper(r: Rompible, puntoMundo: THREE.Vector3, dir: THREE.Vector
   // El punto de contacto puede caer fuera: se acerca al interior para concentrar ahí los cortes.
   const impacto = new THREE.Vector3(l.x, l.y, l.z).multiplyScalar(0.7).add(r.centro);
   const helado = r.helado > 0;
-  const n = Math.round(r.tipo.piezas * (helado ? 1.4 : 1) * THREE.MathUtils.clamp(r.convexo.volumen / r.volumen0, 0.5, 1));
-  const piezas = fracturar(r.convexo, impacto, Math.max(2, n), rnd, r.tipo.material === 'madera' ? normalVeta : normalLibre);
+  let piezas: Convexo[];
+  let geometrias: THREE.BufferGeometry[] | undefined;
+  if (r.lascas === 0) {
+    // Objeto intacto: patrón de rotura precalculado (ver fracturaCacheada).
+    const f = fracturaCacheada(r.tipo, r.convexo, r.planos, impacto, helado);
+    piezas = f.piezas;
+    geometrias = f.geometrias;
+  } else {
+    const n = Math.round(r.tipo.piezas * (helado ? 1.4 : 1) * THREE.MathUtils.clamp(r.convexo.volumen / r.volumen0, 0.5, 1));
+    piezas = fracturar(r.convexo, impacto, Math.max(2, n), rnd, r.tipo.material === 'madera' ? normalVeta : normalLibre);
+  }
   lanzarPiezas(piezas, {
     tipo: r.tipo,
     planos: r.planos,
@@ -385,7 +505,7 @@ export function romper(r: Rompible, puntoMundo: THREE.Vector3, dir: THREE.Vector
     dir,
     fuerza,
     arde: r.ardiendo > 0,
-  });
+  }, geometrias);
   world.removeBody(b);
   r.mesh.removeFromParent();
   r.mesh.geometry.dispose();
