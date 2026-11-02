@@ -2,7 +2,12 @@
  * Sala de pruebas: menú para elegir sandbox.
  * - Teclas 1, 2, 3 para entrar en cada sandbox.
  * - Fondo: ascuas y polvo a baja resolución (estilo PS1), quieto si se pide menos movimiento.
+ * - Música del tema «Sala de pruebas» desde el primer clic o tecla (botón abajo a la izquierda, tecla U).
  */
+
+import { iniciarMusica } from '../audio/musica';
+
+iniciarMusica('menu');
 
 const sellos = [...document.querySelectorAll<HTMLAnchorElement>('a.sello[data-tecla]')];
 window.addEventListener('keydown', (e) => {

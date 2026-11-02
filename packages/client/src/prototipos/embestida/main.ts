@@ -17,6 +17,8 @@ import {
   type Plano,
 } from '../../physics/fractura';
 import './embestida.css';
+import { iniciarMusica } from '../../audio/musica';
+import { Fragor } from '../../audio/fragor';
 
 /**
  * Prototipo: embestida del guerrero con físicas reales (cannon-es).
@@ -734,6 +736,21 @@ document.querySelectorAll<HTMLButtonElement>('[data-gen]').forEach((btn) =>
   }),
 );
 
+// ---------- Música ----------
+const musica = iniciarMusica('embestida');
+const fragor = new Fragor(musica.tema.reposo);
+const visto = { rotos: 0, empujones: 0, aturdidos: 0 };
+/** Enemigos cerca del guerrero, embestidas, objetos rotos y aturdidos: marcan la intensidad de la música. */
+function medirFragor(dt: number) {
+  const gp = guerrero.body.position;
+  let cerca = 0;
+  for (const e of enemigos) if (Math.hypot(e.body.position.x - gp.x, e.body.position.z - gp.z) < 14) cerca += e.pesado ? 2 : 1;
+  fragor.amenaza(cerca);
+  fragor.golpe((stats.empujones - visto.empujones) * 0.05 + (stats.rotos - visto.rotos) * 0.02 + (stats.aturdidos - visto.aturdidos) * 0.1);
+  Object.assign(visto, stats);
+  musica.intensidad(fragor.paso(dt));
+}
+
 // ---------- Bucle ----------
 const reloj = new THREE.Timer();
 let acum = 0;
@@ -772,6 +789,7 @@ function frame() {
     n++;
   }
   if (n === 8) acum = 0;
+  medirFragor(real);
 
   // Guerrero
   const g = guerrero;

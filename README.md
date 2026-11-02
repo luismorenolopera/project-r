@@ -5,7 +5,7 @@ Este repositorio sigue el *Plan Maestro de Diseño y Arquitectura* del equipo.
 
 **Estado actual:** sala de pruebas local (sin conexión) con tres sandboxes jugables: el combate de las 5 clases,
 la embestida del guerrero con físicas y el grimorio del mago (hechizos con runas, combos elementales y entorno
-destructible). La red (Colyseus + Geckos.io) y la persistencia (Supabase) llegan en los hitos siguientes;
+destructible). Cada página tiene su música, generada en el navegador y que se intensifica con el combate. La red (Colyseus + Geckos.io) y la persistencia (Supabase) llegan en los hitos siguientes;
 ver [`docs/HITOS.md`](docs/HITOS.md).
 
 **Jugar en línea:** <https://luismorenolopera.github.io/project-r/> (se publica con GitHub Pages en cada push a `main`).
@@ -35,6 +35,22 @@ pnpm dev          # http://localhost:5173 → menú para elegir sandbox (teclas 
 
 Cada sandbox tiene un enlace «← Sala de pruebas» para volver al menú.
 
+### Música
+
+Cada página tiene su tema, compuesto y sintetizado en el navegador con Web Audio (sin ficheros de audio):
+
+| Página | Tema | Carácter |
+| --- | --- | --- |
+| Menú | «Sala de pruebas» | Re menor, lento: arpa, pads, celesta y campanas |
+| Sandbox de combate | «Cripta de los cinco» | Mi menor, 100 bpm: bajo, ostinato de cuerdas, taikos, metales y coro |
+| Embestida con físicas | «Carga del guerrero» | La frigio, 116 bpm: bajo al galope y tambores de guerra |
+| Grimorio del mago | «Biblioteca en ruinas» | Fa sostenido dórico: cristal, celesta, campanas y arpa |
+
+La música sube con el combate: con enemigos cerca, golpes y muertes entran tambores, metales y coro, y se retiran despacio
+cuando todo se calma. Cada combo del mago suena con una floritura y, con el grimorio abierto, la música se oye apagada.
+Empieza con el primer clic o tecla (los navegadores no dejan sonar antes). El control de abajo a la izquierda (o la tecla
+**U**) la silencia y ajusta el volumen; ambas cosas se guardan en el navegador.
+
 ### Sandbox de combate
 
 Haz clic en «Haz clic para jugar». Controles:
@@ -48,6 +64,7 @@ Haz clic en «Haz clic para jugar». Controles:
 | 1 a 5 | Guerrero, Mago, Arquero, Curador, Alquimista |
 | Z X C V B G | Esqueleto, Cultista, Bruto, Espectro, Muñeco, Compañero (en el punto apuntado) |
 | O · K · I | Oleada · Limpiar · Inmortal |
+| U | Silenciar o activar la música |
 | Esc | Soltar el ratón y usar el panel lateral |
 
 ### Embestida con físicas
@@ -64,6 +81,7 @@ de cannon-es. Un enemigo despedido contra un muro, pilar o sarcófago queda atur
 | 1 2 3 4 | Caja, barril, urna, lápida en el cursor |
 | 5 6 | Esqueleto, bruto en el cursor |
 | T · P · R | Cámara lenta · los enemigos persiguen · reiniciar |
+| U | Silenciar o activar la música |
 
 ### Grimorio del mago
 
@@ -84,6 +102,7 @@ sin repetir; si eliges uno que ya está en otra ranura, se intercambian). La bui
 | V B N M | Caja, barril de aceite, tinaja de agua, cristal de maná en el cursor |
 | O · P · I · T · R | Oleada · enemigos atacan · inmortal · cámara lenta · reiniciar |
 | Rueda · H | Zoom · ocultar paneles |
+| U | Silenciar o activar la música |
 
 **Combos elementales.** Cada golpe deja un estado (quemado, frío/congelado, electrizado, empapado, marca arcana) y el
 siguiente elemento reacciona con él:
@@ -110,7 +129,7 @@ golpe fuerte arranca una lasca por el lado del impacto y el resto sigue en pie c
 ## Probar
 
 ```bash
-pnpm test         # pruebas de la simulación, la fractura y el grimorio (Vitest)
+pnpm test         # pruebas de la simulación, la fractura, el grimorio y la música (Vitest)
 pnpm typecheck    # comprobación de tipos de todos los paquetes
 ```
 
@@ -132,6 +151,7 @@ packages/
             colisiones deterministas, sinergias. Sin dependencias de navegador.
   client/   cliente Vite + Three.js (shaders PS1) + cannon-es (ragdolls, fractura y cámara).
     index.html                 sala de pruebas (menú)
+    src/audio/                 música procedural: partitura y temas (puro, con pruebas), instrumentos, motor y control
     src/physics/fractura.ts    fractura convexa y astillado, compartidos por los prototipos
     src/prototipos/embestida/  prototipo de la embestida del guerrero
     src/prototipos/mago/       grimorio del mago (grimorio.ts y reacciones.ts son puros y tienen pruebas)

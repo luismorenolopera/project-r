@@ -20,6 +20,14 @@
 - [x] Pruebas: reglas del grimorio, reacciones, astillado y validez de los trozos para cannon-es
 - [ ] Llevar el lanzamiento de hechizos a la simulación compartida (con red)
 
+## Música de la sala de pruebas · 2026-11-02
+- [x] Motor de música procedural con Web Audio, sin ficheros de audio (D-17)
+- [x] Un tema por página con capas que entran según la intensidad del combate
+- [x] Floritura en los combos del mago y música amortiguada con el grimorio abierto
+- [x] Control con silencio (tecla U) y volumen guardados; se suspende con la pestaña oculta
+- [x] Pruebas: acordes y escalas, notas dentro de la escala de cada acorde, cadencias, determinismo y `Fragor`
+- [ ] Efectos de sonido (golpes, hechizos, roturas)
+
 ## Hito 0 · Cimientos de red · pendiente
 ## Hito 1 · Combate cooperativo · parcialmente adelantado por el sandbox
 ## Hito 2 · Bucle roguelike · pendiente
