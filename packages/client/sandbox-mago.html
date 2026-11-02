@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mazmorra Co-op · Grimorio del mago</title>
+  </head>
+  <body>
+    <canvas id="game"></canvas>
+    <div id="numeros"></div>
+    <div id="anuncios"></div>
+
+    <aside id="panel">
+      <a class="volver" href="./index.html">← Sala de pruebas</a>
+      <h1>Grimorio del mago</h1>
+      <p>Pulsa <b>K</b> (o una ranura) para cambiar hechizos y runas. El juego se pausa mientras eliges.</p>
+      <h2>Generar en el cursor</h2>
+      <div class="botones">
+        <button type="button" data-gen="esqueleto">Esqueleto · Z</button>
+        <button type="button" data-gen="bruto">Bruto · X</button>
+        <button type="button" data-gen="muneco">Muñeco · C</button>
+        <button type="button" data-gen="caja">Caja · V</button>
+        <button type="button" data-gen="barril">Barril</button>
+        <button type="button" data-gen="aceite">Barril de aceite · B</button>
+        <button type="button" data-gen="tinaja">Tinaja de agua · N</button>
+        <button type="button" data-gen="cristal">Cristal de maná · M</button>
+        <button type="button" data-gen="urna">Urna</button>
+        <button type="button" data-gen="obelisco">Obelisco</button>
+        <button type="button" data-gen="columna">Columna rota</button>
+        <button type="button" data-gen="muro">Muro de ladrillos</button>
+      </div>
+      <h2>Escena</h2>
+      <div class="botones">
+        <button type="button" id="btn-oleada" class="ancho">Oleada de esqueletos · O</button>
+        <button type="button" id="btn-persiguen" class="ancho">Enemigos atacan (P): no</button>
+        <button type="button" id="btn-inmortal" class="ancho">Inmortal (I): sí</button>
+        <button type="button" id="btn-lento" class="ancho">Cámara lenta (T): no</button>
+        <button type="button" id="btn-reiniciar" class="ancho">Reiniciar escena · R</button>
+        <button type="button" id="btn-paneles" class="ancho">Ocultar paneles · H</button>
+      </div>
+    </aside>
+
+    <aside id="combos">
+      <button type="button" id="combos-toggle" title="Mostrar u ocultar">Combos</button>
+      <ul id="lista-combos"></ul>
+    </aside>
+
+    <div id="stats"></div>
+    <div id="buff" hidden></div>
+
+    <div id="barra">
+      <div class="globo vida"><div id="vida-lleno" class="lleno"></div><span id="vida-texto"></span></div>
+      <div id="ranuras"></div>
+      <div class="globo mana"><div id="mana-lleno" class="lleno"></div><span id="mana-texto"></span></div>
+    </div>
+
+    <div id="grimorio" hidden>
+      <div class="g-marco" role="dialog" aria-label="Grimorio">
+        <header>
+          <h2>Grimorio</h2>
+          <label class="g-libre"><input type="checkbox" id="modo-libre" /> Modo libre: cualquier hechizo en cualquier ranura</label>
+          <button type="button" id="g-cerrar">Cerrar · K</button>
+        </header>
+        <div id="g-ranuras"></div>
+        <div class="g-cuerpo">
+          <section>
+            <h3 id="g-titulo-hechizos">Hechizos</h3>
+            <p id="g-desc-cat" class="g-nota"></p>
+            <div id="g-tabs"></div>
+            <div id="g-hechizos"></div>
+          </section>
+          <section>
+            <h3 id="g-titulo-runas">Runas</h3>
+            <p class="g-nota">Una runa por hechizo. Cambiar el elemento abre combos nuevos.</p>
+            <div id="g-runas"></div>
+          </section>
+        </div>
+        <footer>
+          <h3>Builds sugeridas</h3>
+          <div id="g-builds"></div>
+          <div class="g-pie"><button type="button" id="g-restablecer">Restablecer build inicial</button><span id="g-msg"></span></div>
+        </footer>
+      </div>
+    </div>
+
+    <div id="inicio">
+      <div class="card">
+        <h1>Grimorio del mago</h1>
+        <p>Seis ranuras, catorce hechizos y cuatro runas por hechizo. Combina elementos para provocar combos y destroza la biblioteca.</p>
+        <div class="teclas">
+          <b>WASD</b><span>moverse</span>
+          <b>Ratón</b><span>apuntar</span>
+          <b>Clic izq · der</b><span>ranuras 1 y 2 (mantén para repetir)</span>
+          <b>1 2 3 4</b><span>ranuras 3 a 6</span>
+          <b>K</b><span>grimorio: hechizos y runas</span>
+          <b>Z X C · V B N M</b><span>enemigos · objetos en el cursor</span>
+          <b>O · P · R</b><span>oleada · enemigos atacan · reiniciar</span>
+          <b>Rueda · H</b><span>zoom · ocultar paneles</span>
+        </div>
+        <p class="pista">Prueba: rompe una tinaja junto a los muñecos y lánzales un rayo. O congela un esqueleto con la Nova y remátalo con la Onda de choque.</p>
+        <button type="button" id="btn-jugar">Empezar</button>
+        <a class="volver" href="./index.html">← Volver a la sala de pruebas</a>
+      </div>
+    </div>
+    <script type="module" src="/src/prototipos/mago/main.ts"></script>
+  </body>
+</html>

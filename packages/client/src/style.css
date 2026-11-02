@@ -100,3 +100,6 @@ body.started #start .card { pointer-events: auto; }
 body.started #start .card table { display: none; }
 body.started #start .card { padding: 10px 14px; }
 body.started #start h1, body.started #start .sub { display: none; }
+a.volver { display: inline-block; color: #c8b890; text-decoration: none; font-size: 12px; margin-bottom: 6px; }
+a.volver:hover, a.volver:focus-visible { color: #ffe0a0; text-decoration: underline; }
+#start a.volver { display: block; margin-top: 12px; text-align: center; }

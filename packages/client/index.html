@@ -2,74 +2,182 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Mazmorra Co-op · Sandbox de combate</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="claude:viewport-fit-sides" content="cover" />
+    <title>Mazmorra Co-op</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=UnifrakturCook:wght@700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    />
+    <style>
+      /* Diseño: una losa de cripta con tres sellos (uno por sandbox); un único mundo oscuro, como el juego. */
+      :root {
+        --piedra: #0d0b10;
+        --losa: #17131b;
+        --losa-alta: #211b26;
+        --veta: #3a3036;
+        --hueso: #e2d8c6;
+        --ceniza: #9a8f80;
+        --brasa: #e8a24a;
+        --runa: #9d8aff;
+        --sangre: #c8321e;
+        --f-titulo: 'UnifrakturCook', 'Old English Text MT', Georgia, serif;
+        --f-texto: 'IBM Plex Mono', 'Courier New', ui-monospace, monospace;
+        color-scheme: dark;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; min-height: 100%; }
+      body {
+        background: var(--piedra);
+        color: var(--hueso);
+        font: 15px/1.6 var(--f-texto);
+        padding-left: max(16px, env(safe-area-inset-left, 0px));
+        padding-right: max(16px, env(safe-area-inset-right, 0px));
+        padding-block: 40px 56px;
+      }
+      #ambiente { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; image-rendering: pixelated; opacity: 0.55; }
+      main { position: relative; z-index: 1; max-width: 1080px; margin: 0 auto; display: grid; gap: 36px; }
+      header { display: grid; gap: 6px; }
+      .eyebrow { font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--ceniza); margin: 0; }
+      h1 {
+        font-family: var(--f-titulo);
+        font-weight: 700;
+        font-size: clamp(48px, 9vw, 92px);
+        line-height: 0.95;
+        margin: 0;
+        color: var(--hueso);
+        text-shadow: 0 0 24px rgba(232, 162, 74, 0.25), 3px 3px 0 #000;
+        text-wrap: balance;
+      }
+      .lema { margin: 6px 0 0; max-width: 62ch; color: var(--ceniza); }
+      .lema b { color: var(--hueso); font-weight: 500; }
+      .sellos { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 18px; }
+      .sello {
+        position: relative;
+        display: grid;
+        grid-template-rows: auto auto 1fr auto auto;
+        gap: 12px;
+        min-width: 0;
+        padding: 20px 20px 18px;
+        background: linear-gradient(180deg, var(--losa-alta), var(--losa));
+        border: 1px solid var(--veta);
+        color: inherit;
+        text-decoration: none;
+        transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+      }
+      .sello::before {
+        content: '';
+        position: absolute;
+        inset: 6px;
+        border: 1px dashed var(--veta);
+        pointer-events: none;
+      }
+      .sello:hover, .sello:focus-visible {
+        transform: translateY(-3px);
+        border-color: var(--acento);
+        box-shadow: 0 10px 30px -12px var(--acento);
+        outline: none;
+      }
+      .sello[data-acento='brasa'] { --acento: var(--brasa); }
+      .sello[data-acento='sangre'] { --acento: var(--sangre); }
+      .sello[data-acento='runa'] { --acento: var(--runa); }
+      .cabeza { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+      .tecla {
+        font-size: 12px;
+        color: var(--ceniza);
+        border: 1px solid var(--veta);
+        padding: 0 6px;
+        font-variant-numeric: tabular-nums;
+      }
+      .chip { font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--acento); }
+      .chip.nuevo::after { content: ' · nuevo'; color: var(--hueso); }
+      h2 { margin: 0; font-size: 21px; font-weight: 600; line-height: 1.25; text-wrap: balance; }
+      .sello p { margin: 0; color: var(--ceniza); font-size: 14px; }
+      .sello p b { color: var(--hueso); font-weight: 500; }
+      dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; margin: 0; font-size: 13px; }
+      dt { color: var(--acento); white-space: nowrap; }
+      dd { margin: 0; color: var(--hueso); min-width: 0; }
+      .entrar {
+        display: flex; justify-content: space-between; align-items: center;
+        padding-top: 12px; border-top: 1px solid var(--veta);
+        font-weight: 600; color: var(--acento); letter-spacing: 0.06em; text-transform: uppercase; font-size: 13px;
+      }
+      .entrar span:last-child { transition: transform 0.15s ease; }
+      .sello:hover .entrar span:last-child { transform: translateX(4px); }
+      footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px; color: var(--ceniza); font-size: 12px; border-top: 1px solid var(--veta); padding-top: 14px; }
+      footer a { color: var(--hueso); }
+      @media (prefers-reduced-motion: reduce) {
+        .sello, .entrar span:last-child { transition: none; }
+        .sello:hover, .sello:focus-visible { transform: none; }
+      }
+    </style>
   </head>
   <body>
-    <canvas id="game"></canvas>
-    <div id="bars"></div>
-    <div id="numbers"></div>
-    <div id="crosshair"></div>
-
-    <div id="hud-top">
-      <div id="class-name"></div>
-      <div id="class-role"></div>
-      <div id="hp"><div id="hp-fill"></div><div id="hp-shield"></div><span id="hp-text"></span></div>
-      <div id="status-tags"></div>
-    </div>
-
-    <div id="combo"><span id="combo-count">0</span><span id="combo-label"></span><div id="combo-bar"><div id="combo-timer"></div></div></div>
-
-    <div id="abilities"></div>
-    <div id="feed"></div>
-    <div id="stats"></div>
-
-    <button id="panel-toggle" title="Mostrar u ocultar el panel">☰</button>
-    <aside id="panel">
-      <h1>Sandbox de combate</h1>
-      <p class="hint">Pulsa <b>Esc</b> para soltar el ratón y usar este panel. Las zonas siguen activas al cambiar de clase: así puedes probar sinergias entre clases tú solo.</p>
-      <h2>Clase</h2>
-      <div id="class-buttons"></div>
-      <ul id="class-abilities"></ul>
-      <h2>Generar (en el punto apuntado)</h2>
-      <div id="spawn-buttons"></div>
-      <div class="row-btns">
-        <button id="btn-wave">Oleada (O)</button>
-        <button id="btn-clear">Limpiar (K)</button>
-        <button id="btn-immortal">Inmortal (I): no</button>
-      </div>
-      <h2>Muñeco</h2>
-      <div id="dps">0 DPS</div>
-      <h2>Sinergias para probar</h2>
-      <ul class="tips">
-        <li><b>Mago → Arquero:</b> Muro ígneo (E) y dispara flechas a través: se vuelven de fuego (+50%).</li>
-        <li><b>Curador → Arquero:</b> Santuario (Q) y dispara a través: flechas sagradas, ×2 contra esqueletos y espectros.</li>
-        <li><b>Alquimista → Mago:</b> Charco de aceite (E) y Muro ígneo encima: explosión que empuja contra los muros.</li>
-        <li><b>Cultistas sobre aceite:</b> su bola de fuego también lo hace explotar.</li>
-        <li><b>Guerrero:</b> Embestida (Shift) contra un pilar aturde. Salto sísmico (R) lanza al aire: los golpes aéreos cuentan doble.</li>
-        <li><b>Bruto:</b> deja que su carga choque contra un muro: queda aturdido y vulnerable.</li>
-        <li><b>Bloqueo (Q) del guerrero</b> justo antes del golpe: desvío perfecto.</li>
-      </ul>
-    </aside>
-
-    <div id="death"><div>Has caído</div><small id="death-timer"></small></div>
-
-    <div id="start">
-      <div class="card">
+    <canvas id="ambiente" aria-hidden="true"></canvas>
+    <main>
+      <header>
+        <p class="eyebrow">Sala de pruebas · sin conexión</p>
         <h1>Mazmorra Co-op</h1>
-        <p class="sub">Sandbox de combate · sin conexión</p>
-        <button id="play">Haz clic para jugar</button>
-        <table>
-          <tr><td>WASD</td><td>moverse</td><td>Ratón</td><td>cámara y apuntar</td></tr>
-          <tr><td>Clic izquierdo</td><td>ataque básico (mantén para encadenar)</td><td>Espacio</td><td>saltar</td></tr>
-          <tr><td>Shift</td><td>movilidad</td><td>Q / clic derecho</td><td>mitigación</td></tr>
-          <tr><td>E</td><td>principal</td><td>R</td><td>definitiva</td></tr>
-          <tr><td>1 a 5</td><td>cambiar de clase</td><td>Z X C V B G</td><td>generar enemigo / muñeco / aliado</td></tr>
-          <tr><td>O</td><td>oleada</td><td>K</td><td>limpiar</td></tr>
-          <tr><td>I</td><td>inmortal</td><td>Esc</td><td>soltar ratón (panel)</td></tr>
-        </table>
-      </div>
-    </div>
-    <script type="module" src="/src/main.ts"></script>
+        <p class="lema">
+          Prototipos jugables del dungeon crawler cooperativo. Cada uno prueba una pieza del combate por separado.
+          Pulsa <b>1</b>, <b>2</b> o <b>3</b>, o elige un sello.
+        </p>
+      </header>
+
+      <nav class="sellos" aria-label="Sandboxes">
+        <a class="sello" data-acento="brasa" href="./sandbox-combate.html" data-tecla="1">
+          <div class="cabeza"><span class="chip">Combate · 5 clases</span><span class="tecla">1</span></div>
+          <h2>Sandbox de combate</h2>
+          <p>
+            Las <b>5 clases</b> con sus 4 ranuras, enemigos con ataques telegrafiados, frenesí y sinergias elementales
+            entre clases. Simulación compartida a <b>20 Hz</b>, la misma que usará el servidor.
+          </p>
+          <dl>
+            <dt>1 a 5</dt><dd>cambiar de clase</dd>
+            <dt>Z X C V B</dt><dd>generar enemigos</dd>
+            <dt>Shift Q E R</dt><dd>habilidades</dd>
+          </dl>
+          <div class="entrar"><span>Entrar</span><span aria-hidden="true">→</span></div>
+        </a>
+
+        <a class="sello" data-acento="sangre" href="./prototipo-embestida.html" data-tecla="2">
+          <div class="cabeza"><span class="chip">Físicas · Guerrero</span><span class="tecla">2</span></div>
+          <h2>Embestida con físicas</h2>
+          <p>
+            La carga de <b>7 m</b> del guerrero empuja según la masa, aturde contra muros y parte cajas, barriles,
+            urnas y lápidas en trozos convexos simulados con cannon-es.
+          </p>
+          <dl>
+            <dt>Clic</dt><dd>embestida al cursor</dd>
+            <dt>1 a 6</dt><dd>objetos y enemigos</dd>
+            <dt>T · P · R</dt><dd>lenta · persiguen · reiniciar</dd>
+          </dl>
+          <div class="entrar"><span>Entrar</span><span aria-hidden="true">→</span></div>
+        </a>
+
+        <a class="sello" data-acento="runa" href="./sandbox-mago.html" data-tecla="3">
+          <div class="cabeza"><span class="chip nuevo">Hechizos · Mago</span><span class="tecla">3</span></div>
+          <h2>Grimorio del mago</h2>
+          <p>
+            Monta tu barra de <b>6 hechizos</b> y ponle una <b>runa</b> a cada uno para cambiar su elemento o su forma.
+            Mezcla fuego, hielo, rayo y arcano para provocar combos, y destroza un entorno que se rompe por trozos.
+          </p>
+          <dl>
+            <dt>Clic izq · der</dt><dd>hechizos de las ranuras 1 y 2</dd>
+            <dt>1 2 3 4</dt><dd>ranuras 3 a 6</dd>
+            <dt>K</dt><dd>grimorio: hechizos y runas</dd>
+          </dl>
+          <div class="entrar"><span>Entrar</span><span aria-hidden="true">→</span></div>
+        </a>
+      </nav>
+
+      <footer>
+        <span>Three.js con sombreado estilo PS1 · cannon-es · bitECS</span>
+        <span>Código en <a href="https://github.com/luismorenolopera/project-r">github.com/luismorenolopera/project-r</a></span>
+      </footer>
+    </main>
+    <script type="module" src="/src/menu/menu.ts"></script>
   </body>
 </html>
