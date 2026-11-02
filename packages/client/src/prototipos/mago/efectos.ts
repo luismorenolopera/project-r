@@ -30,34 +30,55 @@ function soltarLuz(l: THREE.PointLight | undefined) {
 }
 
 // ---------------------------------------------------------------- partículas
-interface Particula {
-  mesh: THREE.Mesh;
-  vel: THREE.Vector3;
-  vida: number;
-  max: number;
-  gravedad: number;
-  tam: number;
-  arrastre: number;
-}
-const vivas: Particula[] = [];
+/**
+ * Todas las partículas se dibujan con dos InstancedMesh (mezcla normal y aditiva): dos llamadas de
+ * dibujo en vez de una por cubo. Antes cada partícula era un THREE.Mesh propio y una explosión en
+ * cadena llegaba a 900 mallas (900 llamadas de dibujo y 900 objetos nuevos para el recolector).
+ * El estado vive en arrays planos y se reutiliza: al morir una partícula, la última ocupa su hueco.
+ */
 const MAX_PARTICULAS = 900;
 const geoCubo = new THREE.BoxGeometry(1, 1, 1);
-const matParticula = new Map<string, THREE.MeshBasicMaterial>();
-function materialParticula(color: number, aditivo: boolean) {
-  const k = `${color}-${aditivo}`;
-  let m = matParticula.get(k);
-  if (!m) {
-    m = new THREE.MeshBasicMaterial({
-      color,
+
+class Lote {
+  readonly mesh: THREE.InstancedMesh;
+  n = 0;
+  readonly pos = new Float32Array(MAX_PARTICULAS * 3);
+  readonly vel = new Float32Array(MAX_PARTICULAS * 3);
+  readonly rot = new Float32Array(MAX_PARTICULAS * 2);
+  /** vida, max, gravedad, tam, arrastre */
+  readonly datos = new Float32Array(MAX_PARTICULAS * 5);
+  readonly color = new Float32Array(MAX_PARTICULAS * 3);
+
+  constructor(aditivo: boolean) {
+    const mat = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
       transparent: true,
       opacity: aditivo ? 0.9 : 0.75,
       depthWrite: false,
       blending: aditivo ? THREE.AdditiveBlending : THREE.NormalBlending,
     });
-    matParticula.set(k, m);
+    this.mesh = new THREE.InstancedMesh(geoCubo, mat, MAX_PARTICULAS);
+    this.mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    this.mesh.instanceColor = new THREE.InstancedBufferAttribute(this.color, 3);
+    this.mesh.instanceColor.setUsage(THREE.DynamicDrawUsage);
+    this.mesh.count = 0;
+    // Las partículas se reparten por toda la escena: la caja de la geometría base no sirve para recortar.
+    this.mesh.frustumCulled = false;
+    scene.add(this.mesh);
   }
-  return m;
+
+  quitar(i: number) {
+    const u = --this.n;
+    if (i === u) return;
+    this.pos.copyWithin(i * 3, u * 3, u * 3 + 3);
+    this.vel.copyWithin(i * 3, u * 3, u * 3 + 3);
+    this.rot.copyWithin(i * 2, u * 2, u * 2 + 2);
+    this.datos.copyWithin(i * 5, u * 5, u * 5 + 5);
+    this.color.copyWithin(i * 3, u * 3, u * 3 + 3);
+  }
 }
+const lotes = [new Lote(false), new Lote(true)] as const;
+const _color = new THREE.Color();
 
 export interface OpcionesParticulas {
   tam?: number;
@@ -71,26 +92,92 @@ export interface OpcionesParticulas {
   dispersion?: number;
 }
 
+const _vel = new THREE.Vector3();
 export function particulas(pos: THREE.Vector3, color: number, n: number, fuerza: number, o: OpcionesParticulas = {}) {
-  const mat = materialParticula(color, o.aditivo ?? false);
-  for (let i = 0; i < n; i++) {
-    if (vivas.length >= MAX_PARTICULAS) quitarParticula(0);
-    const mesh = new THREE.Mesh(geoCubo, mat);
-    mesh.position.copy(pos);
-    if (o.dispersion) mesh.position.add(new THREE.Vector3(rand(-1, 1), rand(-0.5, 0.5), rand(-1, 1)).multiplyScalar(o.dispersion));
-    const tam = (o.tam ?? 0.12) * rand(0.6, 1.5);
-    mesh.scale.setScalar(tam);
-    scene.add(mesh);
-    const vel = new THREE.Vector3(rand(-1, 1), rand(0.1, 1.2), rand(-1, 1)).normalize().multiplyScalar(fuerza * rand(0.3, 1));
-    if (o.dir) vel.addScaledVector(o.dir, fuerza * rand(0.4, 1));
+  const lote = lotes[o.aditivo ? 1 : 0];
+  // El color de instancia se multiplica por el del material (blanco); se guarda en espacio lineal
+  // como haría `material.color`.
+  _color.setHex(color);
+  for (let k = 0; k < n; k++) {
+    // Lleno: se sustituye la partícula más vieja que quede a mano (la del hueco 0 nació antes que la media).
+    const i = lote.n < MAX_PARTICULAS ? lote.n++ : Math.floor(Math.random() * MAX_PARTICULAS);
+    let x = pos.x;
+    let y = pos.y;
+    let z = pos.z;
+    if (o.dispersion) {
+      x += rand(-1, 1) * o.dispersion;
+      y += rand(-0.5, 0.5) * o.dispersion;
+      z += rand(-1, 1) * o.dispersion;
+    }
+    lote.pos[i * 3] = x;
+    lote.pos[i * 3 + 1] = y;
+    lote.pos[i * 3 + 2] = z;
+    _vel.set(rand(-1, 1), rand(0.1, 1.2), rand(-1, 1)).normalize().multiplyScalar(fuerza * rand(0.3, 1));
+    if (o.dir) _vel.addScaledVector(o.dir, fuerza * rand(0.4, 1));
+    lote.vel[i * 3] = _vel.x;
+    lote.vel[i * 3 + 1] = _vel.y;
+    lote.vel[i * 3 + 2] = _vel.z;
+    lote.rot[i * 2] = 0;
+    lote.rot[i * 2 + 1] = 0;
     const max = (o.vida ?? 0.8) * rand(0.6, 1.3);
-    vivas.push({ mesh, vel, vida: max, max, gravedad: o.gravedad ?? -3, tam, arrastre: o.arrastre ?? 2.5 });
+    const d = lote.datos;
+    d[i * 5] = max;
+    d[i * 5 + 1] = max;
+    d[i * 5 + 2] = o.gravedad ?? -3;
+    d[i * 5 + 3] = (o.tam ?? 0.12) * rand(0.6, 1.5);
+    d[i * 5 + 4] = o.arrastre ?? 2.5;
+    lote.color[i * 3] = _color.r;
+    lote.color[i * 3 + 1] = _color.g;
+    lote.color[i * 3 + 2] = _color.b;
   }
 }
 
-function quitarParticula(i: number) {
-  vivas[i]!.mesh.removeFromParent();
-  vivas.splice(i, 1);
+const _m = new THREE.Matrix4();
+const _q = new THREE.Quaternion();
+const _e = new THREE.Euler();
+const _pp = new THREE.Vector3();
+const _s = new THREE.Vector3();
+function actualizarParticulas(dt: number) {
+  for (const lote of lotes) {
+    const { pos, vel, rot, datos } = lote;
+    for (let i = lote.n - 1; i >= 0; i--) {
+      const vida = (datos[i * 5] -= dt);
+      if (vida <= 0) lote.quitar(i);
+    }
+    const arr = Math.exp(-2.5 * dt);
+    for (let i = 0; i < lote.n; i++) {
+      const vida = datos[i * 5]!;
+      const max = datos[i * 5 + 1]!;
+      const tam = datos[i * 5 + 3]!;
+      const k = datos[i * 5 + 4] === 2.5 ? arr : Math.exp(-datos[i * 5 + 4]! * dt);
+      vel[i * 3 + 1] += datos[i * 5 + 2]! * dt;
+      vel[i * 3] *= k;
+      vel[i * 3 + 1] *= k;
+      vel[i * 3 + 2] *= k;
+      pos[i * 3] += vel[i * 3]! * dt;
+      pos[i * 3 + 1] += vel[i * 3 + 1]! * dt;
+      pos[i * 3 + 2] += vel[i * 3 + 2]! * dt;
+      if (pos[i * 3 + 1]! < 0.03) {
+        pos[i * 3 + 1] = 0.03;
+        vel[i * 3 + 1] *= -0.3;
+      }
+      rot[i * 2] += dt * 4;
+      rot[i * 2 + 1] += dt * 3;
+      _q.setFromEuler(_e.set(rot[i * 2]!, rot[i * 2 + 1]!, 0));
+      _s.setScalar(tam * Math.min(1, (vida / max) * 1.6));
+      _m.compose(_pp.set(pos[i * 3]!, pos[i * 3 + 1]!, pos[i * 3 + 2]!), _q, _s);
+      _m.toArray(lote.mesh.instanceMatrix.array, i * 16);
+    }
+    lote.mesh.count = lote.n;
+    if (lote.n > 0) {
+      lote.mesh.instanceMatrix.clearUpdateRanges();
+      lote.mesh.instanceMatrix.addUpdateRange(0, lote.n * 16);
+      lote.mesh.instanceMatrix.needsUpdate = true;
+      lote.mesh.instanceColor!.clearUpdateRanges();
+      lote.mesh.instanceColor!.addUpdateRange(0, lote.n * 3);
+      lote.mesh.instanceColor!.needsUpdate = true;
+    }
+  }
 }
 
 // ---------------------------------------------------------------- anillos, conos y destellos
@@ -279,24 +366,7 @@ export function anuncio(texto: string, color: string) {
 // ---------------------------------------------------------------- actualización
 const _p = new THREE.Vector3();
 export function actualizarEfectos(dt: number) {
-  for (let i = vivas.length - 1; i >= 0; i--) {
-    const p = vivas[i]!;
-    p.vida -= dt;
-    if (p.vida <= 0) {
-      quitarParticula(i);
-      continue;
-    }
-    p.vel.y += p.gravedad * dt;
-    p.vel.multiplyScalar(Math.exp(-p.arrastre * dt));
-    p.mesh.position.addScaledVector(p.vel, dt);
-    if (p.mesh.position.y < 0.03) {
-      p.mesh.position.y = 0.03;
-      p.vel.y *= -0.3;
-    }
-    p.mesh.rotation.x += dt * 4;
-    p.mesh.rotation.y += dt * 3;
-    p.mesh.scale.setScalar(p.tam * Math.min(1, (p.vida / p.max) * 1.6));
-  }
+  actualizarParticulas(dt);
   for (let i = efimeros.length - 1; i >= 0; i--) {
     const e = efimeros[i]!;
     e.vida -= dt;
@@ -341,7 +411,10 @@ export function actualizarNumeros(dt: number) {
 }
 
 export function limpiarEfectos() {
-  while (vivas.length) quitarParticula(vivas.length - 1);
+  for (const l of lotes) {
+    l.n = 0;
+    l.mesh.count = 0;
+  }
   for (const e of efimeros) {
     e.alActualizar?.(1);
     e.obj.removeFromParent();
@@ -356,5 +429,5 @@ export function limpiarEfectos() {
 }
 
 export function cuentaParticulas() {
-  return vivas.length;
+  return lotes[0].n + lotes[1].n;
 }

@@ -101,6 +101,7 @@ export class Hud {
 
   /** Se llama cada fotograma: tiempos de reutilización, maná, vida y potenciador. */
   actualizar() {
+    this.aplicarDestellos();
     this.build.forEach((slot, i) => {
       const h = hechizo(slot.hechizo);
       const c = this.celdas[i]!;
@@ -151,8 +152,17 @@ export class Hud {
     f.n.textContent = String(total);
     f.fila.classList.add('hecho');
     f.fila.classList.remove('destello');
-    void f.fila.offsetWidth;
-    f.fila.classList.add('destello');
+    // El destello se reinicia una vez por fotograma (en actualizar): forzar el reflujo en cada combo
+    // de una explosión en cadena costaba decenas de recálculos de estilo en un solo paso.
+    this.destellosPendientes.add(f.fila);
+  }
+
+  private readonly destellosPendientes = new Set<HTMLElement>();
+  private aplicarDestellos() {
+    if (this.destellosPendientes.size === 0) return;
+    void document.body.offsetWidth;
+    for (const fila of this.destellosPendientes) fila.classList.add('destello');
+    this.destellosPendientes.clear();
   }
 
   reiniciarCombos() {
@@ -160,6 +170,7 @@ export class Hud {
       f.n.textContent = '0';
       f.fila.classList.remove('hecho', 'destello');
     }
+    this.destellosPendientes.clear();
   }
 
   // ---------------------------------------------------------------- grimorio
