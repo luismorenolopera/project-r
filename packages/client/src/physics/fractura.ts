@@ -129,6 +129,19 @@ export function casco(input: THREE.Vector3[]): Convexo | null {
     faces.push(ids);
   }
 
+  // Un vértice de verdad de un poliedro convexo pertenece al menos a 3 caras. Los que aparecen en
+  // menos están en mitad de una arista (o de una cara) y dejan la topología inconsistente: una cara
+  // los conserva y la vecina no. cannon-es da por hecho que cada cara de n lados tiene n vecinas,
+  // así que se quitan de todas las caras.
+  const usos = new Map<number, number>();
+  for (const f of faces) for (const i of f) usos.set(i, (usos.get(i) ?? 0) + 1);
+  for (let k = faces.length - 1; k >= 0; k--) {
+    const f = faces[k]!.filter((i) => usos.get(i)! >= 3);
+    if (f.length < 3) faces.splice(k, 1);
+    else faces[k] = empezarBien(verts, f);
+  }
+  if (faces.length < 4) return null;
+
   // Elimina vértices que no quedaron en ninguna cara y reindexa.
   const used = new Map<number, number>();
   const finalVerts: THREE.Vector3[] = [];
@@ -148,6 +161,50 @@ export function casco(input: THREE.Vector3[]): Convexo | null {
   const { volumen, centro } = volumenYCentro(finalVerts, faces);
   if (volumen < 1e-7) return null;
   return { verts: finalVerts, faces, volumen, centro };
+}
+
+/**
+ * Rota los índices de una cara (sin cambiar su sentido) para que los tres primeros vértices
+ * formen el triángulo de mayor área: cannon-es calcula la normal de la cara solo con esos tres.
+ */
+function empezarBien(verts: THREE.Vector3[], f: number[]): number[] {
+  const a = new THREE.Vector3();
+  const b = new THREE.Vector3();
+  let mejor = 0;
+  let mejorArea = -1;
+  for (let k = 0; k < f.length; k++) {
+    const p0 = verts[f[k]!]!;
+    const p1 = verts[f[(k + 1) % f.length]!]!;
+    const p2 = verts[f[(k + 2) % f.length]!]!;
+    const area = a.subVectors(p1, p0).cross(b.subVectors(p2, p1)).lengthSq();
+    if (area > mejorArea) {
+      mejorArea = area;
+      mejor = k;
+    }
+  }
+  return f.slice(mejor).concat(f.slice(0, mejor));
+}
+
+/**
+ * Comprueba que un convexo cumple lo que cannon-es necesita para colisionar convexo contra convexo:
+ * normales bien definidas con los tres primeros vértices y cada cara de n lados con n caras vecinas.
+ */
+export function validoParaCannon(c: Convexo): boolean {
+  const n = new THREE.Vector3();
+  const ab = new THREE.Vector3();
+  const bc = new THREE.Vector3();
+  for (let i = 0; i < c.faces.length; i++) {
+    const f = c.faces[i]!;
+    if (f.length < 3) return false;
+    const [a, b, d] = [c.verts[f[0]!]!, c.verts[f[1]!]!, c.verts[f[2]!]!];
+    n.crossVectors(bc.subVectors(b, a), ab.subVectors(d, b));
+    if (n.lengthSq() < 1e-24) return false;
+    if (n.normalize().dot(normalCara(c.verts, f)) < 0.99) return false;
+    let vecinas = 0;
+    for (let j = 0; j < c.faces.length; j++) if (j !== i && c.faces[j]!.some((v) => f.includes(v))) vecinas++;
+    if (vecinas < f.length) return false;
+  }
+  return true;
 }
 
 export function volumenYCentro(verts: THREE.Vector3[], faces: number[][]) {
@@ -230,11 +287,33 @@ function randomUnit(rnd: Rnd, out = new THREE.Vector3()) {
   return out.set(r * Math.cos(a), z, r * Math.sin(a));
 }
 
+/** Genera la normal de cada plano de corte; permite sesgar la rotura según el material. */
+export type GeneradorNormal = (rnd: Rnd, out: THREE.Vector3) => THREE.Vector3;
+
+/** Cortes en cualquier orientación (piedra, barro, hielo). */
+export const normalLibre: GeneradorNormal = (rnd, out) => randomUnit(rnd, out);
+
+/**
+ * Cortes casi verticales: la madera se raja a lo largo de la veta (eje Y del objeto) y deja astillas largas.
+ * De vez en cuando un corte transversal parte la astilla.
+ */
+export const normalVeta: GeneradorNormal = (rnd, out) => {
+  if (rnd() < 0.2) return randomUnit(rnd, out);
+  const a = rnd() * Math.PI * 2;
+  return out.set(Math.cos(a), (rnd() - 0.5) * 0.25, Math.sin(a)).normalize();
+};
+
 /**
  * Parte un convexo en `piezas` trozos convexos. Los cortes se concentran cerca del impacto,
  * de modo que esa zona queda hecha añicos y el lado opuesto en trozos grandes.
  */
-export function fracturar(original: Convexo, impacto: THREE.Vector3, piezas: number, rnd: Rnd): Convexo[] {
+export function fracturar(
+  original: Convexo,
+  impacto: THREE.Vector3,
+  piezas: number,
+  rnd: Rnd,
+  generarNormal: GeneradorNormal = normalLibre,
+): Convexo[] {
   let trozos: Convexo[] = [original];
   const minVol = original.volumen * 0.012;
   let intentos = 0;
@@ -260,7 +339,7 @@ export function fracturar(original: Convexo, impacto: THREE.Vector3, piezas: num
     p.x += (rnd() - 0.5) * radio * 0.4;
     p.y += (rnd() - 0.5) * radio * 0.4;
     p.z += (rnd() - 0.5) * radio * 0.4;
-    randomUnit(rnd, n);
+    generarNormal(rnd, n);
     const [a, b] = cortar(t.verts, n, n.dot(p));
     const ca = casco(a);
     const cb = casco(b);
@@ -271,7 +350,35 @@ export function fracturar(original: Convexo, impacto: THREE.Vector3, piezas: num
   return trozos;
 }
 
-/** Planos de las caras del convexo original, para distinguir superficie exterior de interior. */
+/**
+ * Astillado progresivo: arranca una lasca del convexo por el lado del impacto, sin romperlo entero.
+ * El plano de corte mira hacia el impacto (con una inclinación aleatoria) y se coloca a `profundidad`
+ * metros por debajo de la superficie en esa dirección. Devuelve null si el corte no deja dos trozos
+ * válidos o si el resto quedaría demasiado pequeño (en ese caso conviene romper el objeto entero).
+ */
+export function astillar(
+  c: Convexo,
+  punto: THREE.Vector3,
+  profundidad: number,
+  rnd: Rnd,
+  restoMinimo = 0.2,
+): { resto: Convexo; lasca: Convexo } | null {
+  const n = punto.clone().sub(c.centro);
+  if (n.lengthSq() < 1e-8) randomUnit(rnd, n);
+  n.normalize();
+  // Inclinación aleatoria de hasta unos 30°: las lascas no salen todas iguales.
+  const ruido = randomUnit(rnd).multiplyScalar(0.55);
+  n.add(ruido).normalize();
+  let soporte = -Infinity;
+  for (const v of c.verts) soporte = Math.max(soporte, n.dot(v));
+  const [delante, detras] = cortar(c.verts, n, soporte - profundidad);
+  const lasca = casco(delante);
+  const resto = casco(detras);
+  if (!lasca || !resto) return null;
+  if (lasca.volumen < c.volumen * 0.005 || resto.volumen < c.volumen * restoMinimo) return null;
+  return { resto, lasca };
+}
+
 /** Normal de un polígono por el método de Newell (robusto ante vértices casi alineados). */
 export function normalCara(verts: THREE.Vector3[], f: number[], out = new THREE.Vector3()) {
   out.set(0, 0, 0);
@@ -285,6 +392,7 @@ export function normalCara(verts: THREE.Vector3[], f: number[], out = new THREE.
   return out.normalize();
 }
 
+/** Planos de las caras del convexo original, para distinguir superficie exterior de interior. */
 export function planosDe(c: Convexo): Plano[] {
   return c.faces.map((f) => {
     const n = normalCara(c.verts, f);

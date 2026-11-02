@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
-import { casco, fracturar, formaCaja, formaTorno, mulberry32, planosDe } from '../src/prototipos/embestida/fractura';
+import { astillar, casco, fracturar, formaCaja, formaTorno, mulberry32, normalVeta, planosDe, validoParaCannon } from '../src/physics/fractura';
 
 const formas = {
   caja: formaCaja(1, 1, 1),
@@ -35,4 +35,28 @@ describe('fractura convexa', () => {
       }
     });
   }
+
+  it('todas las piezas cumplen lo que exige cannon-es (normales y caras vecinas), también las del cristal', () => {
+    const conCristal = {
+      ...formas,
+      cristal: formaTorno([[-0.7, 0], [-0.25, 0.3], [0.45, 0.24], [0.9, 0]], 6),
+      obelisco: formaTorno([[-1.5, 0.55], [1.2, 0.36], [1.55, 0]], 4),
+    };
+    let piezas = 0;
+    for (const [nombre, pts] of Object.entries(conCristal)) {
+      const original = casco(pts)!;
+      expect(validoParaCannon(original)).toBe(true);
+      for (let seed = 1; seed <= 80; seed++) {
+        const rnd = mulberry32(seed);
+        const impacto = new THREE.Vector3(rnd() - 0.5, rnd() - 0.5, rnd() - 0.5).multiplyScalar(0.5);
+        const trozos = fracturar(original, impacto, 14, rnd, nombre === 'barril' ? normalVeta : undefined);
+        const lasca = astillar(original, impacto.clone().multiplyScalar(3), 0.15, rnd);
+        for (const t of [...trozos, ...(lasca ? [lasca.resto, lasca.lasca] : [])]) {
+          piezas++;
+          expect(validoParaCannon(t), `${nombre} semilla ${seed}`).toBe(true);
+        }
+      }
+    }
+    expect(piezas).toBeGreaterThan(3000);
+  });
 });

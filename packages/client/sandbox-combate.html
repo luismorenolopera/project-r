@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mazmorra Co-op · Sandbox de combate</title>
+  </head>
+  <body>
+    <canvas id="game"></canvas>
+    <div id="bars"></div>
+    <div id="numbers"></div>
+    <div id="crosshair"></div>
+
+    <div id="hud-top">
+      <div id="class-name"></div>
+      <div id="class-role"></div>
+      <div id="hp"><div id="hp-fill"></div><div id="hp-shield"></div><span id="hp-text"></span></div>
+      <div id="status-tags"></div>
+    </div>
+
+    <div id="combo"><span id="combo-count">0</span><span id="combo-label"></span><div id="combo-bar"><div id="combo-timer"></div></div></div>
+
+    <div id="abilities"></div>
+    <div id="feed"></div>
+    <div id="stats"></div>
+
+    <button id="panel-toggle" title="Mostrar u ocultar el panel">☰</button>
+    <aside id="panel">
+      <a class="volver" href="./index.html">← Sala de pruebas</a>
+      <h1>Sandbox de combate</h1>
+      <p class="hint">Pulsa <b>Esc</b> para soltar el ratón y usar este panel. Las zonas siguen activas al cambiar de clase: así puedes probar sinergias entre clases tú solo.</p>
+      <h2>Clase</h2>
+      <div id="class-buttons"></div>
+      <ul id="class-abilities"></ul>
+      <h2>Generar (en el punto apuntado)</h2>
+      <div id="spawn-buttons"></div>
+      <div class="row-btns">
+        <button id="btn-wave">Oleada (O)</button>
+        <button id="btn-clear">Limpiar (K)</button>
+        <button id="btn-immortal">Inmortal (I): no</button>
+      </div>
+      <h2>Muñeco</h2>
+      <div id="dps">0 DPS</div>
+      <h2>Sinergias para probar</h2>
+      <ul class="tips">
+        <li><b>Mago → Arquero:</b> Muro ígneo (E) y dispara flechas a través: se vuelven de fuego (+50%).</li>
+        <li><b>Curador → Arquero:</b> Santuario (Q) y dispara a través: flechas sagradas, ×2 contra esqueletos y espectros.</li>
+        <li><b>Alquimista → Mago:</b> Charco de aceite (E) y Muro ígneo encima: explosión que empuja contra los muros.</li>
+        <li><b>Cultistas sobre aceite:</b> su bola de fuego también lo hace explotar.</li>
+        <li><b>Guerrero:</b> Embestida (Shift) contra un pilar aturde. Salto sísmico (R) lanza al aire: los golpes aéreos cuentan doble.</li>
+        <li><b>Bruto:</b> deja que su carga choque contra un muro: queda aturdido y vulnerable.</li>
+        <li><b>Bloqueo (Q) del guerrero</b> justo antes del golpe: desvío perfecto.</li>
+      </ul>
+    </aside>
+
+    <div id="death"><div>Has caído</div><small id="death-timer"></small></div>
+
+    <div id="start">
+      <div class="card">
+        <h1>Mazmorra Co-op</h1>
+        <p class="sub">Sandbox de combate · sin conexión</p>
+        <button id="play">Haz clic para jugar</button>
+        <a class="volver" href="./index.html">← Volver a la sala de pruebas</a>
+        <table>
+          <tr><td>WASD</td><td>moverse</td><td>Ratón</td><td>cámara y apuntar</td></tr>
+          <tr><td>Clic izquierdo</td><td>ataque básico (mantén para encadenar)</td><td>Espacio</td><td>saltar</td></tr>
+          <tr><td>Shift</td><td>movilidad</td><td>Q / clic derecho</td><td>mitigación</td></tr>
+          <tr><td>E</td><td>principal</td><td>R</td><td>definitiva</td></tr>
+          <tr><td>1 a 5</td><td>cambiar de clase</td><td>Z X C V B G</td><td>generar enemigo / muñeco / aliado</td></tr>
+          <tr><td>O</td><td>oleada</td><td>K</td><td>limpiar</td></tr>
+          <tr><td>I</td><td>inmortal</td><td>Esc</td><td>soltar ratón (panel)</td></tr>
+        </table>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

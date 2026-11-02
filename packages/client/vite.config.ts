@@ -9,8 +9,10 @@ export default defineConfig({
     chunkSizeWarningLimit: 1200,
     rollupOptions: {
       input: {
-        sandbox: resolve(__dirname, 'index.html'),
+        menu: resolve(__dirname, 'index.html'),
+        combate: resolve(__dirname, 'sandbox-combate.html'),
         embestida: resolve(__dirname, 'prototipo-embestida.html'),
+        mago: resolve(__dirname, 'sandbox-mago.html'),
       },
     },
   },

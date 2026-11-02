@@ -15,7 +15,7 @@ import {
   planosDe,
   type Convexo,
   type Plano,
-} from './fractura';
+} from '../../physics/fractura';
 import './embestida.css';
 
 /**

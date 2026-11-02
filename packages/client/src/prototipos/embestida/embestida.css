@@ -20,3 +20,6 @@ h1 { font-size: 15px; margin: 0 0 4px; letter-spacing: 1px; text-transform: uppe
 #inicio .card { background: var(--bg); border: 1px solid #5a4a3a; padding: 18px 22px; max-width: 460px; }
 #inicio button { margin-top: 10px; width: 100%; text-align: center; font-size: 15px; padding: 8px; }
 @media (max-width: 700px) { #panel { width: 230px; font-size: 11px; } }
+a.volver { display: inline-block; color: #c8b890; text-decoration: none; font-size: 12px; margin-bottom: 6px; }
+a.volver:hover, a.volver:focus-visible { color: #ffe0a0; text-decoration: underline; }
+#inicio a.volver { display: block; margin-top: 12px; text-align: center; }

@@ -66,3 +66,36 @@ descomposición convexa, y basta para el estilo PS1. En el juego real la rotura 
 (mismo troceado en todos los clientes) y los trozos serán cosméticos, como los ragdolls (D-03).
 **Estado:** prototipo aislado (`prototipo-embestida.html`); en él las físicas sí mueven a guerrero y enemigos para probar
 la sensación. Pendiente de confirmar antes de llevarlo a la simulación compartida.
+
+## D-13 · La página principal es una sala de pruebas (2026-11-02)
+**Decisión:** `index.html` pasa a ser un menú con los sandboxes; el sandbox de combate se mueve a `sandbox-combate.html`.
+Cada sandbox es una página propia de Vite con un enlace de vuelta al menú, y el conjunto se publica en GitHub Pages.
+**Motivo:** lo pidió Luis al subir el código a `project-r`. Páginas separadas mantienen cada prototipo aislado (sin estado
+compartido ni carga extra) y permiten enlazar directamente a uno.
+
+## D-14 · Hechizos del mago con ranuras por categoría y runas
+**Decisión:** 6 ranuras ligadas a categorías (Principal, Secundaria, Defensa, Fuerza, Conjuro, Dominio), 14 hechizos y
+4 runas por hechizo. Una runa por hechizo; la mayoría cambia el elemento, otras la forma (abanico, rebote, cadena,
+cargas...). Un "modo libre" quita la restricción de categoría y no deja repetir hechizos (intercambia ranuras).
+El catálogo y las reglas de la barra viven en `grimorio.ts`, sin Three.js ni DOM, con pruebas.
+**Motivo:** lo pidió Luis tomando como referencia el sistema de habilidades y runas de los ARPG clásicos. Los nombres y
+efectos son propios. Cambiar el elemento con la runa es lo que hace que cada build abra combos distintos.
+**Estado:** prototipo en el cliente (`sandbox-mago.html`); los números son iniciales. En el juego real la build se elegiría
+en el Hub o entre salas, y el lanzamiento pasaría a la simulación compartida.
+
+## D-15 · Combos elementales por estados
+**Decisión:** cada golpe aplica un estado (quemado, frío acumulado hasta congelar, electrizado, empapado, marca arcana) y
+el elemento siguiente reacciona con lo que ya tiene el objetivo (tabla en `reacciones.ts` y en el README). Cada combo
+tiene una espera de 0,45 s por objetivo y los golpes que nacen de un combo aplican estados sin provocar combos nuevos.
+**Motivo:** reglas pocas y legibles que premian combinar runas. La espera evita que un rayo continuo dispare diez combos
+por segundo y la regla de los golpes derivados corta las cadenas infinitas.
+
+## D-16 · Astillado progresivo y convexos válidos para cannon-es
+**Decisión:** los objetos de piedra pierden una lasca por golpe fuerte (corte plano orientado al impacto, a una profundidad
+que crece con el daño) y el resto sigue en pie con su forma nueva hasta quedarse por debajo del 35% del volumen.
+Las formas se guardan en las coordenadas del objeto original para que la textura no salte al astillar.
+`casco()` quita los vértices que pertenecen a menos de 3 caras y rota cada cara para que sus tres primeros vértices den una
+normal fiable; `validoParaCannon()` lo comprueba y, si algún trozo no cumple, colisiona como una caja.
+**Motivo:** cannon-es supone que cada cara de n lados tiene n caras vecinas y calcula la normal con los tres primeros
+vértices; tras muchos cortes aparecían caras que lo incumplían y el solver se rompía (detectado al probar la Implosión
+contra los cristales). Hay una prueba con más de 3000 trozos.
