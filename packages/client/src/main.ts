@@ -11,6 +11,8 @@ import { RetroPostProcess } from './render/psx';
 import { buildArena, updateBraziers } from './render/scene';
 import { createTextures } from './render/textures';
 import { Hud, SPAWNABLE } from './ui/hud';
+import { iniciarMusica } from './audio/musica';
+import { Fragor } from './audio/fragor';
 
 // ---------------------------------------------------------------- render
 const canvas = document.getElementById('game') as HTMLCanvasElement;
@@ -192,6 +194,30 @@ function setClass(cls: ClassId) {
   hud.feed(`Clase: ${CLASSES[cls]!.nombre}`);
 }
 
+// ---------------------------------------------------------------- música
+const musica = iniciarMusica('combate');
+const fragor = new Fragor(musica.tema.reposo);
+const esMonstruo = (k: Kind) => k >= Kind.Esqueleto && k <= Kind.Espectro;
+let fragorT = 0;
+/** Enemigos vivos a menos de 18 m del héroe y su vida: lo que marca la intensidad de la música. */
+function medirFragor(dt: number) {
+  fragorT -= dt;
+  if (fragorT <= 0) {
+    fragorT = 0.25;
+    const hx = sim.c.Pos.x[hero]!;
+    const hz = sim.c.Pos.z[hero]!;
+    let cerca = 0;
+    for (const e of sim.actors()) {
+      if (!esMonstruo(sim.kind(e)) || !sim.isAlive(e)) continue;
+      if (Math.hypot(sim.c.Pos.x[e]! - hx, sim.c.Pos.z[e]! - hz) < 18) cerca++;
+    }
+    fragor.amenaza(cerca);
+    const max = sim.c.Health.max[hero]!;
+    fragor.vida(max > 0 ? sim.c.Health.hp[hero]! / max : 1);
+  }
+  musica.intensidad(fragor.paso(dt));
+}
+
 function flushEvents() {
   processEvents(sim.drainEvents());
 }
@@ -243,6 +269,8 @@ function processEvents(events: SimEvent[]) {
         if (e.absorbido > 0) hud.float(pos, `(${e.absorbido})`, 'shield');
         fx.burst(pos.x, pos.y - 0.6, pos.z, ELEMENT_COLORS[e.el], e.amount > 25 ? 10 : 5, 3.5);
         if (sim.kind(e.target) === Kind.Muneco) hud.logDummyDamage(e.amount, now);
+        if (isHero) fragor.golpe(0.05);
+        else if (esMonstruo(sim.kind(e.target))) fragor.golpe(0.025);
         break;
       }
       case 'heal':
@@ -258,6 +286,7 @@ function processEvents(events: SimEvent[]) {
           if (e.eid === hero) v.model.root.visible = false;
         }
         if (e.eid === hero) hud.feed('Has caído', 'bad');
+        if (esMonstruo(e.kind)) fragor.golpe(0.08);
         break;
       }
       case 'respawn': {
@@ -391,6 +420,7 @@ function frame(nowMs: number) {
   last = nowMs;
   const time = nowMs / 1000;
   handleHotkeys();
+  medirFragor(dt);
 
   acc += dt;
   while (acc >= DT) {

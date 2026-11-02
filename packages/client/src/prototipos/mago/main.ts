@@ -17,6 +17,8 @@ import { actualizarZonas, contadorCombos, danarMago, ganchosCombate, procesarEve
 import { actualizarHechizos, avisoFallo, canalizar, canalizando, cuentaHechizos, lanzar, limpiarHechizos } from './hechizos';
 import { Hud } from './hud';
 import { HECHIZOS, RANURAS, hechizo, type Build } from './grimorio';
+import { iniciarMusica } from '../../audio/musica';
+import { Fragor } from '../../audio/fragor';
 
 /**
  * Sandbox del mago: barra de hechizos con runas, combos elementales y un entorno destructible.
@@ -26,12 +28,39 @@ import { HECHIZOS, RANURAS, hechizo, type Build } from './grimorio';
 window.addEventListener('resize', ajustarTamano);
 ajustarTamano();
 
+// ---------------------------------------------------------------- música
+const musica = iniciarMusica('mago');
+const fragor = new Fragor(musica.tema.reposo);
+const visto = { muertos: 0, rotos: 0 };
+/** Enemigos hostiles cerca, muertes, objetos rotos y la vida del mago: marcan la intensidad de la música. */
+function medirFragor(dt: number) {
+  const p = mago.body.position;
+  let cerca = 0;
+  for (const e of enemigos) {
+    if (e.muerto || e.tipo === 'muneco') continue;
+    // Quietos (sin la opción «enemigos atacan») inquietan la mitad.
+    if (Math.hypot(e.body.position.x - p.x, e.body.position.z - p.z) < 16) cerca += (e.tipo === 'bruto' ? 2 : 1) * (estado.persiguen ? 1 : 0.5);
+  }
+  fragor.amenaza(cerca);
+  fragor.vida(mago.hp / mago.hpMax);
+  fragor.golpe(Math.max(0, estadisticasEnemigos.muertos - visto.muertos) * 0.07 + Math.max(0, estadisticasObjetos.rotos - visto.rotos) * 0.015);
+  visto.muertos = estadisticasEnemigos.muertos;
+  visto.rotos = estadisticasObjetos.rotos;
+  musica.intensidad(fragor.paso(dt));
+}
+
 // ---------------------------------------------------------------- interfaz
 const hud = new Hud(() => {
   estado.pausa = hud.abierto;
   if (hud.abierto) limpiarEntrada();
+  // Con el grimorio abierto la música se oye como desde otra sala.
+  musica.amortiguar(hud.abierto);
 });
-ganchosCombate.alCombo = (id) => hud.marcarCombo(id, contadorCombos[id]);
+ganchosCombate.alCombo = (id) => {
+  hud.marcarCombo(id, contadorCombos[id]);
+  fragor.golpe(0.12);
+  musica.acento();
+};
 
 // ---------------------------------------------------------------- entrada
 const teclas = new Set<string>();
@@ -357,6 +386,7 @@ function frame() {
     for (const i of activas) {
       if (hechizo(hud.build[i]!.hechizo).canalizado) continue;
       const r = lanzar(hud.build, i, apunte);
+      if (r.ok) fragor.golpe(0.012);
       if (!r.ok && r.motivo === 'mana' && estado.tiempo - ultimoFallo > 0.8) {
         ultimoFallo = estado.tiempo;
         avisoFallo(r.motivo);
@@ -364,6 +394,7 @@ function frame() {
     }
   }
 
+  medirFragor(real);
   let dt = estado.pausa ? 0 : real * (estado.lento ? 0.25 : 1);
   if (estado.hitStop > 0 && dt > 0) {
     estado.hitStop -= real;

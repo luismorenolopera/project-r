@@ -14,6 +14,14 @@ export default defineConfig({
         embestida: resolve(__dirname, 'prototipo-embestida.html'),
         mago: resolve(__dirname, 'sandbox-mago.html'),
       },
+      output: {
+        // Trozos compartidos con nombre propio (si no, Rollup los nombra por un módulo cualquiera de dentro).
+        manualChunks: (id) => {
+          if (id.includes('node_modules')) return 'motor'; // three.js y cannon-es
+          if (id.includes('/src/render/') || id.includes('/packages/shared/')) return 'render';
+          return undefined;
+        },
+      },
     },
   },
 });

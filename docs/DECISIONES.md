@@ -99,3 +99,20 @@ normal fiable; `validoParaCannon()` lo comprueba y, si algún trozo no cumple, c
 **Motivo:** cannon-es supone que cada cara de n lados tiene n caras vecinas y calcula la normal con los tres primeros
 vértices; tras muchos cortes aparecían caras que lo incumplían y el solver se rompía (detectado al probar la Implosión
 contra los cristales). Hay una prueba con más de 3000 trozos.
+
+## D-17 · Música procedural con Web Audio, sin ficheros
+**Decisión:** la música se compone y sintetiza en el navegador (`packages/client/src/audio/`). Cada página tiene su tema
+(«Sala de pruebas», «Cripta de los cinco», «Carga del guerrero», «Biblioteca en ruinas»): una progresión de acordes en forma
+AABA y capas (dron, pads, bajo, ostinatos, percusión, melodía generada en frases A A' B A con cadencia, campanas, coro).
+`partitura.ts` es puro y determinista; `instrumentos.ts` sintetiza cada voz con osciladores, filtros y ruido; `musica.ts`
+programa compases enteros por adelantado, con reverberación de cripta, eco y un paso bajo final que da el sonido apagado
+de las consolas de los 90. Cada capa tiene un umbral de intensidad y `Fragor` traduce el combate (enemigos cerca, golpes,
+muertes, combos, vida baja) a esa intensidad: con el combate entran tambores, metales y coro, y se van despacio al acabar.
+El grimorio abierto amortigua la música y cada combo del mago suena con una floritura. Botón abajo a la izquierda y tecla
+U para silenciar; volumen y silencio se guardan en el navegador. Empieza con el primer clic o tecla (los navegadores no dejan
+sonar antes) y se suspende con la pestaña oculta.
+**Motivo:** lo pidió Luis. Sin ficheros no hay licencias que revisar ni descargas (unos 10 kB comprimidos), encaja con la
+estética PS1 y la música puede reaccionar al combate capa a capa, cosa difícil con pistas grabadas.
+**Estado:** primera versión. La mezcla se equilibró midiendo cada capa renderizada sin altavoces (picos entre -7 y -11 dBFS,
+sin recortes, con el volumen por defecto). Si más adelante se quieren pistas grabadas, el control y `Fragor` sirven igual.
+
