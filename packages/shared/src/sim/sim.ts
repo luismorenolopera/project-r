@@ -7,7 +7,7 @@ import { mulberry32, yawToDir, distPointSegment } from '../math';
 import type { InputFrame } from '../input';
 import type { SimEvent } from './events';
 import { createTrainingCrypt, pointBlocked, resolveCircle, type Arena, type CollisionResult } from './geometry';
-import { castAbility, updateHeroAction, onDashEnd } from './abilities';
+import { castAbility, updateHeroAction, onDashEnd, DashFx, HeroAction } from './abilities';
 import { updateAI } from './ai';
 import { updateProjectiles, updateZones, ZoneDef } from './effects';
 
@@ -411,6 +411,7 @@ export class Sim {
     if (k === Kind.Heroe) {
       c.Health.deadT[target] = 3;
       this.breakCombo(target);
+      this.clearHeroMotion(target);
     } else {
       this.remove(target);
     }
@@ -455,8 +456,8 @@ export class Sim {
   applyBurn(target: number, src: number, dps: number, t: number) {
     const S = this.c.Status;
     if (!this.isAlive(target)) return;
-    const aff = this.affinity(target, Element.Fuego);
-    S.burnDps[target] = Math.max(S.burnDps[target]!, dps * aff);
+    // La afinidad se aplica en `damage` en cada pulso; aquí se guarda el daño base.
+    S.burnDps[target] = Math.max(S.burnDps[target]!, dps);
     S.burnT[target] = Math.max(S.burnT[target]!, t);
     S.burnSrc[target] = src;
   }
@@ -464,8 +465,7 @@ export class Sim {
   applyPoison(target: number, src: number, dps: number, t: number) {
     const S = this.c.Status;
     if (!this.isAlive(target)) return;
-    const aff = this.affinity(target, Element.Veneno);
-    S.poisonDps[target] = Math.max(S.poisonDps[target]!, dps * aff);
+    S.poisonDps[target] = Math.max(S.poisonDps[target]!, dps);
     S.poisonT[target] = Math.max(S.poisonT[target]!, t);
     S.poisonSrc[target] = src;
   }
@@ -545,7 +545,26 @@ export class Sim {
     c.Pos.z[e] = c.Pos.pz[e] = this.arena.spawn.z;
     c.Pos.y[e] = c.Pos.py[e] = 0;
     for (const arr of Object.values(c.Status)) arr[e] = arr instanceof Int32Array ? -1 : 0;
+    this.clearHeroMotion(e);
     this.emit({ t: 'respawn', eid: e });
+  }
+
+  /** Corta la acción, la carga y el empujón en curso (al morir y al reaparecer). */
+  private clearHeroMotion(e: number) {
+    const c = this.c;
+    c.Hero.action[e] = HeroAction.Ninguna;
+    c.Hero.actionT[e] = 0;
+    c.Dash.t[e] = 0;
+    c.Dash.vx[e] = 0;
+    c.Dash.vz[e] = 0;
+    c.Dash.effect[e] = DashFx.Ninguno;
+    c.Knock.t[e] = 0;
+    c.Knock.vx[e] = 0;
+    c.Knock.vz[e] = 0;
+    c.Vel.x[e] = 0;
+    c.Vel.y[e] = 0;
+    c.Vel.z[e] = 0;
+    this.hitSets.delete(e);
   }
 
   private updateHero(e: number) {
@@ -723,15 +742,17 @@ export class Sim {
         const dz = c.Pos.z[b]! - c.Pos.z[a]!;
         const min = c.Body.radius[a]! + c.Body.radius[b]!;
         const d2 = dx * dx + dz * dz;
-        if (d2 >= min * min || d2 < 1e-8) continue;
+        if (d2 >= min * min) continue;
         const d = Math.sqrt(d2);
         const push = min - d;
         const ma = c.Body.mass[a]!;
         const mb = c.Body.mass[b]!;
         const wa = mb / (ma + mb);
         const wb = ma / (ma + mb);
-        const ux = dx / d;
-        const uz = dz / d;
+        // En el mismo punto no hay dirección: se usa una fija para que siga siendo determinista.
+        const same = d < 1e-4;
+        const ux = same ? 1 : dx / d;
+        const uz = same ? 0 : dz / d;
         c.Pos.x[a] = c.Pos.x[a]! - ux * push * wa;
         c.Pos.z[a] = c.Pos.z[a]! - uz * push * wa;
         c.Pos.x[b] = c.Pos.x[b]! + ux * push * wb;

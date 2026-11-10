@@ -320,8 +320,9 @@ export function updateHeroAction(sim: Sim, e: number) {
   if (H.action[e] === HeroAction.Torbellino) {
     const before = H.actionT[e]!;
     H.actionT[e] = before - DT;
-    // 5 golpes en 1 s: uno cada 0,2 s.
-    if (Math.floor(before / 0.2) !== Math.floor(H.actionT[e]! / 0.2) || before >= 1) {
+    // 5 golpes en 1 s: uno cada 0,2 s, empezando en el primer tick. Se cuenta en ticks para no depender del redondeo.
+    const tick = Math.round((1 - before) / DT);
+    if (tick % Math.round(0.2 / DT) === 0) {
       radialHit(sim, e, c.Pos.x[e]!, c.Pos.z[e]!, 3, 12, Element.Fisico, 0);
     }
     if (H.actionT[e]! <= 0) H.action[e] = HeroAction.Ninguna;
