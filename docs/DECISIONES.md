@@ -157,3 +157,29 @@ cannon-es (mago y embestida) la física va a 120 Hz con paso fijo, pero el rende
   Los ragdolls usan la interpolación que ya calcula `world.step(fijo, dt)`.
 **Motivo:** son los dos fallos de base que más se notan al jugar y se arreglan sin cambiar el diseño ni el reparto
 cliente/servidor. El coste de los subpasos es despreciable (solo actores rápidos hacen más de uno).
+
+## D-20 · Alquimista: transmutación de materia del entorno en vez de frascos (propuesta, 2026-11-10)
+**Petición:** Luis pidió un alquimista que cree armas e interacciones únicas a partir de los materiales del entorno y que
+combine elementos para crear ataques nuevos, inspirado en la alquimia de transmutación del anime. Se toma solo la idea de
+mecánica (transmutar lo que hay alrededor, con un coste equivalente); nombres, sello y diseño son propios.
+**Decisión (demo técnica `sandbox-alquimista.html`):**
+- **Ley del equilibrio:** el alquimista no tiene maná ni munición. Descompone objetos, escombros, restos o el suelo en seis
+  materiales (piedra, madera, metal, cristal, agua, aceite) con un inventario de 20 por material. Rinde según el volumen;
+  el objeto entero rinde más que sus trozos (factor 0,7) y el suelo es lento (2,2 de piedra por segundo).
+- **Crisol de dos huecos:** base = forma, catalizador = elemento o propiedad, el mismo dos veces = versión grande.
+  6 × 7 = 42 recetas que se resuelven de forma sistemática (`materia.ts`, puro y con pruebas), no una tabla a mano: se pueden
+  añadir materiales sin reescribir combinaciones. Cada receta se lanza (Q) o se forja como arma con usos (F).
+- **Transmutar el entorno (E):** una interacción por material del objeto bajo el cursor (8 en total), sin coste salvo los
+  grilletes, porque el objeto es la materia.
+- **Reutiliza el mundo del mago** (arena, objetos destructibles, enemigos, combos elementales). En el código compartido solo
+  se añade: el tipo y el volumen de cada trozo, `retirarRompible`, `quitarTrozo` exportado y el objeto `chatarra` (metal).
+- **Física:** púas y pilares son cuerpos cinemáticos que se registran como «duros» (aturden al chocar); jabalinas y
+  cuchillas son dinámicos, en el grupo de colisión de los trozos (no chocan entre sí ni con los escombros) y no chocan
+  físicamente con los enemigos: el golpe se calcula por barrido del recorrido en cada paso, así una pieza que atraviesa
+  no se desvía y una rápida no se salta a nadie. El alquimista tiene grupo propio para que sus piezas no le golpeen al salir.
+**Pendiente de confirmar:** el kit del alquimista de la simulación compartida (`shared/content/classes.ts`: frascos, veneno,
+aceite, piel de piedra) sigue igual. Si Luis da el visto bueno a la transmutación, habrá que llevarla a la simulación
+determinista de 20 Hz (los materiales y las recetas de `materia.ts` ya son puros) y decidir si la materia se comparte entre
+jugadores. Esto también responde en parte a la duda abierta sobre recolección y crafteo: aquí es recolección en combate,
+sin inventario persistente.
+

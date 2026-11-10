@@ -13,6 +13,7 @@ export default defineConfig({
         combate: resolve(__dirname, 'sandbox-combate.html'),
         embestida: resolve(__dirname, 'prototipo-embestida.html'),
         mago: resolve(__dirname, 'sandbox-mago.html'),
+        alquimista: resolve(__dirname, 'sandbox-alquimista.html'),
       },
       output: {
         // Trozos compartidos con nombre propio (si no, Rollup los nombra por un módulo cualquiera de dentro).

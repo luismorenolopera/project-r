@@ -33,7 +33,7 @@ import type { ComboId } from './reacciones';
  * - Barriles de aceite que explotan, tinajas que empapan el suelo y cristales de maná que detonan.
  */
 
-export type MaterialObjeto = 'madera' | 'barro' | 'piedra' | 'cristal' | 'hielo';
+export type MaterialObjeto = 'madera' | 'barro' | 'piedra' | 'cristal' | 'hielo' | 'metal';
 
 export interface TipoObjeto {
   id: string;
@@ -95,6 +95,10 @@ export const TIPOS: Record<string, TipoObjeto> = {
   lapida: {
     id: 'lapida', nombre: 'Lápida', forma: () => torno([[-0.8, 0.5], [0.55, 0.5], [0.8, 0.28]], 4).map((p) => p.set(p.x * 1.2, p.y, p.z * 0.45)),
     textura: textures.sarcophagus, escalaUV: 1.4, exterior: 0xf0e8e0, interior: 0x9a9288, densidad: 120, piezas: 12, polvo: 0x9a948a, hp: 70, material: 'piedra', astillable: true,
+  },
+  chatarra: {
+    id: 'chatarra', nombre: 'Chatarra', forma: () => torno([[-0.4, 0.56], [0.08, 0.5], [0.4, 0.16]], 4).map((p) => p.set(p.x, p.y, p.z * 0.75)), textura: textures.grain, escalaUV: 0.5,
+    exterior: 0xa0603a, interior: 0xd8dce4, densidad: 160, piezas: 8, polvo: 0x8a8a90, hp: 90, material: 'metal',
   },
   ladrillo: {
     id: 'ladrillo', nombre: 'Ladrillo', forma: () => formaCaja(0.7, 0.35, 0.4), caja: [0.7, 0.35, 0.4], textura: textures.wall, escalaUV: 1.6,
@@ -306,8 +310,11 @@ function empujarCuerpo(b: CANNON.Body, dir: THREE.Vector3, v: number) {
 }
 
 // ---------------------------------------------------------------- trozos
-interface Trozo {
+export interface Trozo {
   body: CANNON.Body;
+  /** Tipo del objeto del que salió y volumen del trozo (el alquimista los descompone en materia). */
+  tipo: TipoObjeto;
+  volumen: number;
   mesh: THREE.Mesh;
   /** La geometría viene de la caché de fracturas y la comparten varios trozos: no se libera. */
   compartida: boolean;
@@ -325,7 +332,7 @@ export const GRUPO_ESCENA = 1;
 export const GRUPO_TROZO = 2;
 const VIDA_TROZOS = 11;
 
-function quitarTrozo(i: number) {
+export function quitarTrozo(i: number) {
   const t = trozos[i]!;
   world.removeBody(t.body);
   t.mesh.removeFromParent();
@@ -381,7 +388,7 @@ function lanzarPiezas(piezas: Convexo[], o: Lanzamiento, geometrias?: THREE.Buff
     world.addBody(body);
     mesh.position.set(w.x, w.y, w.z);
     mesh.quaternion.set(body.quaternion.x, body.quaternion.y, body.quaternion.z, body.quaternion.w);
-    trozos.push({ body, mesh, compartida: !!geometrias, edad: 0, arde: o.arde && rnd() < 0.5 ? rand(1, 3) : 0 });
+    trozos.push({ body, mesh, tipo: o.tipo, volumen: p.volumen, compartida: !!geometrias, edad: 0, arde: o.arde && rnd() < 0.5 ? rand(1, 3) : 0 });
   }
   while (trozos.length > MAX_TROZOS) quitarTrozo(0);
 }
@@ -778,6 +785,16 @@ export function sincronizarObjetos() {
     const fin = t.edad - VIDA_TROZOS;
     t.mesh.scale.setScalar(fin > 0 ? Math.max(0.01, 1 - fin) : 1);
   }
+}
+
+/** Quita un objeto intacto sin romperlo (lo descompone el alquimista). Cuenta como roto para las listas. */
+export function retirarRompible(r: Rompible) {
+  if (r.roto) return;
+  r.roto = true;
+  world.removeBody(r.body);
+  rompibleDe.delete(r.body);
+  r.mesh.removeFromParent();
+  r.mesh.geometry.dispose();
 }
 
 /** Apaga el fuego de los objetos en un radio (al romperse una tinaja). */

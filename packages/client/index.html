@@ -22,6 +22,7 @@
         --ceniza: #9a8f80;
         --brasa: #e8a24a;
         --runa: #9d8aff;
+        --cobre: #d08a4a;
         --sangre: #c8321e;
         --f-titulo: 'UnifrakturCook', 'Old English Text MT', Georgia, serif;
         --f-texto: 'IBM Plex Mono', 'Courier New', ui-monospace, monospace;
@@ -83,6 +84,7 @@
       .sello[data-acento='brasa'] { --acento: var(--brasa); }
       .sello[data-acento='sangre'] { --acento: var(--sangre); }
       .sello[data-acento='runa'] { --acento: var(--runa); }
+      .sello[data-acento='cobre'] { --acento: var(--cobre); }
       .cabeza { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
       .tecla {
         font-size: 12px;
@@ -122,7 +124,7 @@
         <h1>Mazmorra Co-op</h1>
         <p class="lema">
           Prototipos jugables del dungeon crawler cooperativo. Cada uno prueba una pieza del combate por separado.
-          Pulsa <b>1</b>, <b>2</b> o <b>3</b>, o elige un sello.
+          Pulsa <b>1</b> a <b>4</b>, o elige un sello.
         </p>
       </header>
 
@@ -158,7 +160,7 @@
         </a>
 
         <a class="sello" data-acento="runa" href="./sandbox-mago.html" data-tecla="3">
-          <div class="cabeza"><span class="chip nuevo">Hechizos · Mago</span><span class="tecla">3</span></div>
+          <div class="cabeza"><span class="chip">Hechizos · Mago</span><span class="tecla">3</span></div>
           <h2>Grimorio del mago</h2>
           <p>
             Monta tu barra de <b>6 hechizos</b> y ponle una <b>runa</b> a cada uno para cambiar su elemento o su forma.
@@ -168,6 +170,21 @@
             <dt>Clic izq · der</dt><dd>hechizos de las ranuras 1 y 2</dd>
             <dt>1 2 3 4</dt><dd>ranuras 3 a 6</dd>
             <dt>K</dt><dd>grimorio: hechizos y runas</dd>
+          </dl>
+          <div class="entrar"><span>Entrar</span><span aria-hidden="true">→</span></div>
+        </a>
+
+        <a class="sello" data-acento="cobre" href="./sandbox-alquimista.html" data-tecla="4">
+          <div class="cabeza"><span class="chip nuevo">Transmutación · Alquimista</span><span class="tecla">4</span></div>
+          <h2>Taller del alquimista</h2>
+          <p>
+            Descompón el entorno en <b>seis materiales</b> y transmútalos: el primero da la forma y el segundo la cambia.
+            Púas que brotan del suelo, jabalinas con física, armas forjadas y <b>36 combinaciones</b>.
+          </p>
+          <dl>
+            <dt>Clic der.</dt><dd>descomponer objetos y suelo</dd>
+            <dt>1 a 6 · Q · F</dt><dd>crisol · lanzar · forjar arma</dd>
+            <dt>E</dt><dd>transmutar lo que hay bajo el cursor</dd>
           </dl>
           <div class="entrar"><span>Entrar</span><span aria-hidden="true">→</span></div>
         </a>
