@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mazmorra Co-op · Taller del alquimista</title>
+  </head>
+  <body>
+    <canvas id="game"></canvas>
+    <div id="numeros"></div>
+    <div id="anuncios"></div>
+
+    <aside id="panel">
+      <a class="volver" href="./index.html">← Sala de pruebas</a>
+      <h1>Taller del alquimista</h1>
+      <p>Nada sale de la nada: <b>descompón</b> el entorno (clic derecho) y <b>transmuta</b> esa materia en ataques (Q) y armas (F).</p>
+      <h2>Generar en el cursor</h2>
+      <div class="botones">
+        <button type="button" data-gen="esqueleto">Esqueleto · Z</button>
+        <button type="button" data-gen="bruto">Bruto</button>
+        <button type="button" data-gen="muneco">Muñeco · C</button>
+        <button type="button" data-gen="caja">Caja · V</button>
+        <button type="button" data-gen="barril">Barril</button>
+        <button type="button" data-gen="aceite">Barril de aceite · B</button>
+        <button type="button" data-gen="tinaja">Tinaja de agua · N</button>
+        <button type="button" data-gen="cristal">Cristal de maná · M</button>
+        <button type="button" data-gen="chatarra">Chatarra · G</button>
+        <button type="button" data-gen="obelisco">Obelisco · L</button>
+        <button type="button" data-gen="urna">Urna</button>
+        <button type="button" data-gen="columna">Columna rota</button>
+        <button type="button" data-gen="muro" class="ancho">Muro de ladrillos</button>
+      </div>
+      <h2>Escena</h2>
+      <div class="botones">
+        <button type="button" id="btn-oleada" class="ancho">Oleada de esqueletos · O</button>
+        <button type="button" id="btn-persiguen" class="ancho">Enemigos atacan (P): no</button>
+        <button type="button" id="btn-inmortal" class="ancho">Inmortal (I): sí</button>
+        <button type="button" id="btn-infinita" class="ancho">Materia infinita (Y): no</button>
+        <button type="button" id="btn-lento" class="ancho">Cámara lenta (T): no</button>
+        <button type="button" id="btn-reiniciar" class="ancho">Reiniciar escena · R</button>
+        <button type="button" id="btn-paneles" class="ancho">Ocultar paneles · H</button>
+      </div>
+    </aside>
+
+    <div id="stats"></div>
+
+    <aside id="recetario">
+      <h2>Recetario</h2>
+      <p id="recetario-cuenta"></p>
+      <div id="recetario-tabla"></div>
+      <p class="leyenda">Filas: base (la forma). Columnas: catalizador. Color = lanzada (Q) · rombo = forjada (F). Clic en una casilla para cargarla en el crisol.</p>
+      <h3>Transmutar el entorno · E</h3>
+      <ul id="entorno-lista"></ul>
+    </aside>
+
+    <div id="pista"></div>
+    <div id="aviso" hidden></div>
+    <div id="barra">
+      <div class="globo"><div id="vida-lleno" class="lleno"></div><span id="vida-texto"></span></div>
+      <div id="materia"></div>
+      <button type="button" id="crisol"></button>
+      <div id="arma" hidden></div>
+    </div>
+
+    <div id="inicio">
+      <div class="card">
+        <h1>Taller del alquimista</h1>
+        <p>
+          El alquimista no trae munición: la saca del entorno. <b>Descompón</b> cajas, piedras, chatarra, tinajas, cristales y aceite
+          en materia, mete dos materiales en el <b>crisol</b> y transmútalos. El primero da la forma y el segundo la cambia:
+          36 combinaciones, cada una como ataque o como arma.
+        </p>
+        <div class="teclas">
+          <b>WASD · ratón</b><span>moverse · apuntar</span>
+          <b>Clic der. (mantener)</b><span>descomponer lo que hay bajo el cursor (objetos, escombros o el suelo)</span>
+          <b>1 a 6</b><span>meter Piedra, Madera, Metal, Cristal, Agua o Aceite en el crisol · X vaciar</span>
+          <b>Q</b><span>lanzar la receta del crisol</span>
+          <b>F</b><span>forjar un arma con la receta</span>
+          <b>Clic izq.</b><span>atacar con el arma (sin arma: una onda que empuja)</span>
+          <b>E</b><span>transmutar el entorno: pilar en el suelo, grilletes a un enemigo, o el objeto bajo el cursor</span>
+          <b>Z C · V B N M G L</b><span>enemigos · objetos en el cursor</span>
+          <b>O · P · Y · R</b><span>oleada · enemigos atacan · materia infinita · reiniciar</span>
+        </div>
+        <p class="pista">
+          Prueba: descompón la chatarra (derecha) y forja una Espada. Lanza un frasco de aceite a los esqueletos de la izquierda y
+          remata con Púas ígneas (1 y luego 6). O pon E sobre el suelo bajo un esqueleto para lanzarlo por los aires.
+        </p>
+        <button type="button" id="btn-jugar">Empezar</button>
+        <a class="volver" href="./index.html">← Volver a la sala de pruebas</a>
+      </div>
+    </div>
+    <script type="module" src="/src/prototipos/alquimista/main.ts"></script>
+  </body>
+</html>
