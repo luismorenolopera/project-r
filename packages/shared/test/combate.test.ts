@@ -316,4 +316,69 @@ describe('determinismo', () => {
   });
 });
 
+describe('regresiones de la auditoría', () => {
+  it('el veneno aplica la afinidad una sola vez', () => {
+    const sim = new Sim(1);
+    const skel = sim.spawnMonster(Kind.Esqueleto, 0, 0);
+    sim.applyPoison(skel, -1, 6, 4);
+    run(sim, 100);
+    // 6/s durante 4 s son 24; el esqueleto resiste el veneno a la mitad.
+    expect(sim.c.Health.max[skel]! - sim.c.Health.hp[skel]!).toBeCloseTo(12, 3);
+  });
+
+  it('la quemadura aplica la afinidad una sola vez', () => {
+    const sim = new Sim(1);
+    const cult = sim.spawnMonster(Kind.Cultista, 0, 0);
+    sim.applyBurn(cult, -1, 8, 4);
+    run(sim, 100);
+    // 8/s durante 4 s son 32; el cultista recibe un 25% del fuego.
+    expect(sim.c.Health.max[cult]! - sim.c.Health.hp[cult]!).toBeCloseTo(8, 3);
+  });
+
+  it('el Torbellino golpea 5 veces', () => {
+    const sim = new Sim(1);
+    const hero = sim.spawnHero(ClassId.Guerrero, 0, 10);
+    const dummy = sim.spawnMonster(Kind.Muneco, 0, 8.5);
+    const ev = press(sim, hero, Btn.Principal, 0, 8.5);
+    ev.push(...collect(sim, 40));
+    expect(ev.filter((e) => e.t === 'hit' && e.target === dummy)).toHaveLength(5);
+  });
+
+  it('morir en mitad de un Salto sísmico cancela el salto', () => {
+    const sim = new Sim(1);
+    const hero = sim.spawnHero(ClassId.Guerrero, -8, 10);
+    const skel = sim.spawnMonster(Kind.Muneco, -8, 16);
+    press(sim, hero, Btn.Definitiva, 0, 10);
+    run(sim, 3);
+    expect(sim.c.Dash.t[hero]).toBeGreaterThan(0);
+    sim.damage(skel, hero, 9999, Element.Fisico);
+    expect(sim.c.Dash.t[hero]).toBe(0);
+    const ev = collect(sim, 80);
+    expect(ev.some((e) => e.t === 'respawn')).toBe(true);
+    expect(ev.some((e) => e.t === 'explosion')).toBe(false);
+    expect(sim.c.Pos.x[hero]).toBeCloseTo(sim.arena.spawn.x, 3);
+    expect(sim.c.Pos.z[hero]).toBeCloseTo(sim.arena.spawn.z, 3);
+  });
+
+  it('morir en mitad de un Torbellino lo detiene', () => {
+    const sim = new Sim(1);
+    const hero = sim.spawnHero(ClassId.Guerrero, 0, 10);
+    const dummy = sim.spawnMonster(Kind.Muneco, 0, 8.5);
+    press(sim, hero, Btn.Principal, 0, 8.5);
+    sim.damage(dummy, hero, 9999, Element.Fisico);
+    expect(sim.c.Hero.action[hero]).toBe(0);
+    const ev = collect(sim, 80);
+    expect(ev.filter((e) => e.t === 'hit' && e.target === dummy)).toHaveLength(0);
+  });
+
+  it('dos enemigos en el mismo punto se separan', () => {
+    const sim = new Sim(1);
+    const a = sim.spawnMonster(Kind.Esqueleto, 3, 3);
+    const b = sim.spawnMonster(Kind.Esqueleto, 3, 3);
+    run(sim, 5);
+    const d = Math.hypot(sim.c.Pos.x[a]! - sim.c.Pos.x[b]!, sim.c.Pos.z[a]! - sim.c.Pos.z[b]!);
+    expect(d).toBeGreaterThanOrEqual(sim.c.Body.radius[a]! + sim.c.Body.radius[b]! - 1e-3);
+  });
+});
+
 void Slot;
