@@ -140,3 +140,20 @@ antes de que haya ratos libres para precalcular). En tiempo real con render por 
 repetido en el peor momento), no del navegador. Un motor de escritorio con el mismo diseño tendría el mismo problema.
 **Pendiente si hace falta más:** juntar la geometría estática de la arena (unas 220 llamadas de dibujo en reposo),
 `BatchedMesh` para los trozos y, si la física sigue pesando, pasarla a un Web Worker o a Rapier (WASM).
+
+## D-19 · Movimiento por subpasos y render interpolado
+**Problema:** la simulación compartida va a 20 Hz y movía a cada actor de golpe con la velocidad del tick. La Embestida
+avanza 1,2 m por tick, más que el grosor de un sarcófago (1 m): lanzada pegada a uno, el centro del guerrero caía dentro y
+`resolveCircle` lo sacaba por el lado contrario. Lo mismo podía pasar con empujones fuertes. En los prototipos con
+cannon-es (mago y embestida) la física va a 120 Hz con paso fijo, pero el render dibujaba la última pose: con monitores de
+75, 144 o 165 Hz unos fotogramas avanzan un paso y otros ninguno, y el movimiento tiembla. Los ragdolls tenían lo mismo.
+**Decisión:**
+- `Sim.moveActor` reparte el desplazamiento del tick en subpasos de como mucho 0,3 m (o el radio del actor, si es menor)
+  y en cargas y empujones se para en el primer choque, así el golpe contra el muro se sigue detectando. Pruebas en
+  `packages/shared/test/fisica.test.ts` (fallaban antes del cambio).
+- `physics/interpolacion.ts`: tras los pasos de física de cada fotograma, `interpolarCuerpos(world, acum / PASO)` mezcla la
+  pose anterior y la actual de cada cuerpo; el render lee `interpolatedPosition` y `interpolatedQuaternion` y la lógica
+  sigue usando `position`. Si un cuerpo se ha teletransportado (más de 1 m en un paso) se dibuja directamente donde está.
+  Los ragdolls usan la interpolación que ya calcula `world.step(fijo, dt)`.
+**Motivo:** son los dos fallos de base que más se notan al jugar y se arreglan sin cambiar el diseño ni el reparto
+cliente/servidor. El coste de los subpasos es despreciable (solo actores rápidos hacen más de uno).

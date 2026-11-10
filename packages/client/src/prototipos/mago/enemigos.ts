@@ -364,7 +364,8 @@ const _cam = new THREE.Vector3();
 export function sincronizarEnemigos(dt: number) {
   const t = estado.tiempo;
   for (const e of enemigos) {
-    const p = e.body.position;
+    // Pose interpolada entre los dos últimos pasos de física (ver physics/interpolacion.ts).
+    const p = e.body.interpolatedPosition;
     const est = e.est;
     const congelado = est.congelado > 0;
     e.model.root.position.set(p.x, p.y, p.z);

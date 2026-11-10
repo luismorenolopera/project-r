@@ -157,8 +157,11 @@ export class ClientPhysics {
       for (let i = 0; i < r.bodies.length; i++) {
         const b = r.bodies[i]!;
         const m = r.meshes[i]!;
-        m.position.set(b.position.x, b.position.y, b.position.z);
-        m.quaternion.set(b.quaternion.x, b.quaternion.y, b.quaternion.z, b.quaternion.w);
+        // world.step(fijo, dt) ya interpola entre pasos: así no tiembla a 144 Hz.
+        const p = b.interpolatedPosition;
+        const q = b.interpolatedQuaternion;
+        m.position.set(p.x, p.y, p.z);
+        m.quaternion.set(q.x, q.y, q.z, q.w);
       }
       // Al final de su vida el cadáver se hunde en el suelo y desaparece.
       if (r.age > this.lifetime - 1.5) {

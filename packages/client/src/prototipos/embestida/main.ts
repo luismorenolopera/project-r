@@ -19,6 +19,7 @@ import {
 import './embestida.css';
 import { iniciarMusica } from '../../audio/musica';
 import { Fragor } from '../../audio/fragor';
+import { interpolarCuerpos } from '../../physics/interpolacion';
 
 /**
  * Prototipo: embestida del guerrero con físicas reales (cannon-es).
@@ -794,9 +795,11 @@ function frame() {
   if (n === 8) acum = 0;
   medirFragor(real);
 
+  interpolarCuerpos(world, acum / PASO);
+
   // Guerrero
   const g = guerrero;
-  const gp = g.body.position;
+  const gp = g.body.interpolatedPosition;
   if (g.dashT <= 0 && apuntando) {
     const dx = apunte.x - gp.x;
     const dz = apunte.z - gp.z;
@@ -822,7 +825,7 @@ function frame() {
 
   // Enemigos
   for (const e of enemigos) {
-    const p = e.body.position;
+    const p = e.body.interpolatedPosition;
     e.model.root.position.set(p.x, p.y, p.z);
     if (e.estado === 'normal') e.model.root.rotation.y = e.yaw;
     // Inclinación visual según la velocidad (la física los mantiene de pie).
@@ -850,12 +853,12 @@ function frame() {
   // Objetos y trozos
   for (const r of rompibles) {
     if (r.roto) continue;
-    r.mesh.position.copy(r.body.position as unknown as THREE.Vector3);
-    r.mesh.quaternion.copy(r.body.quaternion as unknown as THREE.Quaternion);
+    r.mesh.position.copy(r.body.interpolatedPosition as unknown as THREE.Vector3);
+    r.mesh.quaternion.copy(r.body.interpolatedQuaternion as unknown as THREE.Quaternion);
   }
   for (const t of trozos) {
-    t.mesh.position.copy(t.body.position as unknown as THREE.Vector3);
-    t.mesh.quaternion.copy(t.body.quaternion as unknown as THREE.Quaternion);
+    t.mesh.position.copy(t.body.interpolatedPosition as unknown as THREE.Vector3);
+    t.mesh.quaternion.copy(t.body.interpolatedQuaternion as unknown as THREE.Quaternion);
     const fin = t.edad - AJ.vidaTrozos;
     t.mesh.scale.setScalar(fin > 0 ? Math.max(0.01, 1 - fin) : 1);
   }

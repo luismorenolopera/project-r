@@ -19,6 +19,7 @@ import { Hud } from './hud';
 import { HECHIZOS, RANURAS, hechizo, type Build } from './grimorio';
 import { iniciarMusica } from '../../audio/musica';
 import { Fragor } from '../../audio/fragor';
+import { interpolarCuerpos } from '../../physics/interpolacion';
 
 /**
  * Sandbox del mago: barra de hechizos con runas, combos elementales y un entorno destructible.
@@ -338,6 +339,7 @@ function avanzar(segundos: number, ranuras: number[] = []) {
     estado.tiempo += PASO;
   }
   ragdolls.step(segundos);
+  interpolarCuerpos(world, 1);
   sincronizarTodo(segundos);
 }
 
@@ -413,8 +415,10 @@ function frame() {
   if (estado.pausa) canalizar(hud.build, null, apunte, 0);
   ragdolls.step(dt);
 
+  interpolarCuerpos(world, acum / PASO);
+
   // Mago
-  const mp = mago.body.position;
+  const mp = mago.body.interpolatedPosition;
   if (apuntando && !canalizando()) {
     const dx = apunte.x - mp.x;
     const dz = apunte.z - mp.z;

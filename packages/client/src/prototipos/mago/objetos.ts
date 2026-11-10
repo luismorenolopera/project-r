@@ -246,8 +246,10 @@ export function crearMuroLadrillos(x: number, z: number, columnas: number, filas
 }
 
 function sincronizar(r: Rompible) {
-  r.mesh.position.set(r.body.position.x, r.body.position.y, r.body.position.z);
-  r.mesh.quaternion.set(r.body.quaternion.x, r.body.quaternion.y, r.body.quaternion.z, r.body.quaternion.w);
+  const p = r.body.interpolatedPosition;
+  const q = r.body.interpolatedQuaternion;
+  r.mesh.position.set(p.x, p.y, p.z);
+  r.mesh.quaternion.set(q.x, q.y, q.z, q.w);
 }
 
 function ponerVariante(r: Rompible, v: Variante) {
@@ -769,8 +771,10 @@ export function actualizarObjetos(dt: number) {
 export function sincronizarObjetos() {
   for (const r of rompibles) if (!r.roto) sincronizar(r);
   for (const t of trozos) {
-    t.mesh.position.set(t.body.position.x, t.body.position.y, t.body.position.z);
-    t.mesh.quaternion.set(t.body.quaternion.x, t.body.quaternion.y, t.body.quaternion.z, t.body.quaternion.w);
+    const p = t.body.interpolatedPosition;
+    const q = t.body.interpolatedQuaternion;
+    t.mesh.position.set(p.x, p.y, p.z);
+    t.mesh.quaternion.set(q.x, q.y, q.z, q.w);
     const fin = t.edad - VIDA_TROZOS;
     t.mesh.scale.setScalar(fin > 0 ? Math.max(0.01, 1 - fin) : 1);
   }
