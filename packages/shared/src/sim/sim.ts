@@ -6,7 +6,7 @@ import { monsterDef } from '../content/enemies';
 import { mulberry32, yawToDir, distPointSegment } from '../math';
 import type { InputFrame } from '../input';
 import type { SimEvent } from './events';
-import { createTrainingCrypt, pointBlocked, resolveCircle, type Arena } from './geometry';
+import { createTrainingCrypt, pointBlocked, resolveCircle, type Arena, type CollisionResult } from './geometry';
 import { castAbility, updateHeroAction, onDashEnd } from './abilities';
 import { updateAI } from './ai';
 import { updateProjectiles, updateZones, ZoneDef } from './effects';
@@ -19,6 +19,10 @@ export const FRENZY_DURATION = 10;
 export const COMBO_WINDOW = 2.5;
 export const WALL_SLAM_SPEED = 6;
 export const PERFECT_GUARD_WINDOW = 0.25;
+/** Avance máximo de un actor por subpaso de colisión (metros). */
+export const MAX_MOVE_STEP = 0.3;
+
+const moveResult: CollisionResult = { x: 0, z: 0, hit: false, nx: 0, nz: 0 };
 
 export interface DamageOpts {
   knock?: number;
@@ -631,11 +635,7 @@ export class Sim {
         vx = 0;
         vz = 0;
       }
-      const nx = c.Pos.x[e]! + vx * DT;
-      const nz = c.Pos.z[e]! + vz * DT;
-      const res = resolveCircle(this.arena, nx, nz, c.Body.radius[e]!);
-      c.Pos.x[e] = res.x;
-      c.Pos.z[e] = res.z;
+      const res = this.moveActor(e, vx, vz, knocking || dashing);
 
       if (res.hit) {
         const ks = Math.hypot(c.Knock.vx[e]!, c.Knock.vz[e]!);
@@ -674,6 +674,40 @@ export class Sim {
         c.Pos.y[e] = y;
       }
     }
+  }
+
+  /**
+   * Mueve un actor en subpasos de como mucho MAX_MOVE_STEP metros para que una carga o un empujón
+   * rápido no atraviese obstáculos finos (a 20 Hz la Embestida avanza 1,2 m por tick y cruzaba los
+   * sarcófagos). Si `stopOnHit`, el movimiento se corta en el primer choque (cargas y empujones).
+   */
+  private moveActor(e: number, vx: number, vz: number, stopOnHit: boolean): CollisionResult {
+    const c = this.c;
+    const r = c.Body.radius[e]!;
+    const dist = Math.hypot(vx, vz) * DT;
+    const steps = Math.max(1, Math.ceil(dist / Math.min(MAX_MOVE_STEP, r)));
+    const sx = (vx * DT) / steps;
+    const sz = (vz * DT) / steps;
+    const out = moveResult;
+    out.hit = false;
+    out.nx = 0;
+    out.nz = 0;
+    let x = c.Pos.x[e]!;
+    let z = c.Pos.z[e]!;
+    for (let i = 0; i < steps; i++) {
+      const res = resolveCircle(this.arena, x + sx, z + sz, r);
+      x = res.x;
+      z = res.z;
+      if (res.hit) {
+        out.hit = true;
+        out.nx = res.nx;
+        out.nz = res.nz;
+        if (stopOnHit) break;
+      }
+    }
+    c.Pos.x[e] = out.x = x;
+    c.Pos.z[e] = out.z = z;
+    return out;
   }
 
   private separate() {
